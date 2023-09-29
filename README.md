@@ -4,7 +4,7 @@
 
 ## Introduction
 
-I had a Apple II. 
+I had a Apple II. The Furby was a 6502 'like' toy. I want make one minimal as my toy.
 
 There are many "clones" [Ben Eater](https://eater.net/6502), [6502](https://github.com/maarten-pennings/6502/tree/master) and [Grant](http://searle.x10host.com/6502/Simple6502.html) and many others.
 
@@ -34,6 +34,9 @@ The board will have one 6551 ACIA and one 6522 VIA inside, with expansion of mor
 The devices are mapped using a 3:8 74HC138 decoder, as $0 reserved, $1 ACIA, $2 VIA, onboard and $3 to $7 at expansion.
 
 No video or keyboard, using terminal at USART 19200 8N1, RS-232, vt-100.
+
+Could use I2C and SPI protocols and devices.
+
 
 ### Software
 
