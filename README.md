@@ -4,7 +4,11 @@
 
 ## introduction
 
-I had a Apple II. Ben Eater makes a revival of 6502. Great support from 6502.org forum.
+I had a Apple II. [Ben Eater](https://www.youtube.com/watch?v=LnzuMJLZRdU) makes a revival of 6502. 
+
+There are many "clones" [6502](https://github.com/maarten-pennings/6502/tree/master)
+
+And a Great support from [6502.org](http://6502.org/) forum.
 
 This is a board for testing the version for 6502 of Minimal Indirect Thread Code Forth as [IMMU](https://github.com/agsb/immu)
 
