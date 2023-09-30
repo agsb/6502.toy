@@ -21,13 +21,13 @@ PS. [Ben Eater](https://www.youtube.com/watch?v=LnzuMJLZRdU) made a revival of 6
 - make a nop circuit to test cpus, using a arduino mini and [clockvar6502](https://github.com/maarten-pennings/6502/blob/master/1clock/clockvar6502)
         
 
-### hardware
+## Hardware
 
 Use wire wrap.
 
 Test NMOS-6502, CMOS-65C02,
 
-The memory map will be as in Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
+The memory map will be as in Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM. 
 
 The board will have one 6551 ACIA and one 6522 VIA inside, with expansion of more 5 devices.
 
@@ -38,12 +38,19 @@ No video or keyboard, using terminal at USART 19200 8N1, RS-232, vt-100.
 Could use I2C and SPI protocols and devices.
 
 
-### Software
+## Software
 
 Use a BIOS and Forth, 
 
 Use USART for VT100 terminal, Tera-Term or PuTTy at computer.
 
+## Memory 
+
+The first RAM $0000-$03FF 1k reserved for system, and $00F0-$00FF 16 bytes at page zero. 
+
+The Wozniac Monitor uses RAM at $200-$027F as terminal input buffer and $0024-$002B at page zero. 
+
+the Forth uses RAM from $400 and $00E0-$00EF 16 bytes at page zero.
 
 
 
