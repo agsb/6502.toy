@@ -37,6 +37,8 @@ No video or keyboard, using terminal at USART 19200 8N1, RS-232, vt-100.
 
 Could use I2C and SPI protocols and devices.
 
+Use [65SIB](http://forum.6502.org/viewtopic.php?t=1064&start=105)
+
 
 ## Software
 
@@ -48,9 +50,9 @@ Use USART for VT100 terminal, Tera-Term or PuTTy at computer.
 
 The first RAM $0000-$03FF 1k reserved for system, and $00F0-$00FF 16 bytes at page zero. 
 
-The Wozniac Monitor uses RAM at $200-$027F as terminal input buffer and $0024-$002B at page zero. 
+The Wozniac Monitor uses RAM at $0200-$027F as terminal input buffer and $0024-$002B at page zero. 
 
-the Forth uses RAM from $400 and $00E0-$00EF 16 bytes at page zero.
+the Forth uses RAM from $0400 and $00E0-$00EF 16 bytes at page zero.
 
 
 
