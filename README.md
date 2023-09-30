@@ -4,7 +4,7 @@
 
 ## Introduction
 
-I had a Apple II. The Furby was a 6502 'like' toy. I want make one minimal as my toy.
+I had a Apple II. The Furby was a 6502 'like' toy. I want make SBC minimal as my toy.
 
 There are many "clones" [Ben Eater](https://eater.net/6502), [Mike](https://github.com/mike42/6502-computer), [Maarten](https://github.com/maarten-pennings/6502/tree/master), [Grant](http://searle.x10host.com/6502/Simple6502.html) and many others.
 
