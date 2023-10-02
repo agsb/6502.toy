@@ -8,7 +8,7 @@ I had a Apple II. The Furby was a 6502 'like' toy. I want make SBC minimal as my
 
 There are many "clones" [Ben Eater](https://eater.net/6502), [Mike](https://github.com/mike42/6502-computer), [Maarten](https://github.com/maarten-pennings/6502/tree/master), [Grant](http://searle.x10host.com/6502/Simple6502.html) and many others.
 
-And a Great support from [6502.org](http://6502.org/) forum.
+And a Great support from [6502.org](http://6502.org/) forum and [Grant](http://wilsonminesco.com/).
 
 This is a board for testing the version for 6502 of Minimal Indirect Thread Code Forth as [IMMU](https://github.com/agsb/immu)
 
