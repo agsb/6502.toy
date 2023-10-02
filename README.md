@@ -23,15 +23,17 @@ PS. [Ben Eater](https://www.youtube.com/watch?v=LnzuMJLZRdU) made a revival of 6
 
 ## Hardware
 
-Use wire wrap.
+Use wire wrap. 
 
 Test NMOS-6502, CMOS-65C02,
 
 The memory map will be as in Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM. 
 
-The board will have one 6551 ACIA and one 6522 VIA inside, with expansion of more 5 devices.
+The board will have one 6551 ACIA and two 6522 VIA inside, with expansion of more 4 devices.
 
-The devices are mapped using a 3:8 74HC138 decoder, as $0 reserved, $1 ACIA, $2 VIA, onboard and $3 to $7 at expansion.
+The devices are mapped using a 3:8 74HC138 decoder, as $0 reserved, $1 ACIA, $2 VIA, $3 VIA, onboard and $4 to $7 at expansion.
+
+A clock board by crystal of 1.8432 for VIAs and by 74HC74 of 0.9612 for CPU, with a Real Timer Click as NMI with 10ms delay using a VIA T1 timer.
 
 No video or keyboard, using terminal at USART 19200 8N1, RS-232, vt-100.
 
@@ -45,6 +47,7 @@ Use [65SIB](http://forum.6502.org/viewtopic.php?t=1064&start=105)
 Use a BIOS and Forth, 
 
 Use USART for VT100 terminal, Tera-Term or PuTTy at computer.
+
 
 ## Memory 
 
