@@ -1,0 +1,89 @@
+### Tricks
+
+    ; self modifying code
+    ; NO RE-ENTRANT !!!
+    ; NO RECURSIVE
+
+;---------------------------------------------------------------------
+    ; save and load registers
+    sta label+1
+    stx label+3
+    sty label+5
+    ;do what need
+label: 
+    lda #00
+    ldx #00
+    ldy #00
+
+;---------------------------------------------------------------------
+    ; save and load stack
+    tsx
+    stx  label+1        
+    ;mess_up_the_stack
+label:  
+    ldx  #0
+    txs
+
+;---------------------------------------------------------------------
+    ; table must start in a $NN00, 
+    ; which is stored as 00NN
+    ; then 0 to 128 routines 
+    ; could be served 
+    ; 
+    ; high byte could be changed too :)
+    asl
+    sta label+1
+label:
+    ; low byte is overwritten, high byte remains
+    jmp (table) 
+    ; or direct
+
+;---------------------------------------------------------------------
+    ; variant
+    sta label+1
+label:
+    bne * ;
+
+;---------------------------------------------------------------------
+    ; indirect from a list    
+    lda list+1,x
+    pha
+    lda list+0,x
+    pha
+    rts
+
+;---------------------------------------------------------------------
+    ; where I am
+    tsx
+    lda 101, x
+    ldy 102, x
+    rts
+    
+;---------------------------------------------------------------------
+
+    ProDos passing parameters
+
+ caller:
+    < do stuff >
+    jsr prodos
+    < do stuff >
+    jmp ends
+
+ prodos:
+    < some table jump to opx* >
+
+ @next:
+ opx0:
+    < do stuff >
+    bne @next
+    jsr opx_do_1
+    < data block for opx1 >
+
+ < repeat until 128 blocks options > 
+
+opx_do_1:
+    < take data block addres at top of stack >  
+    < use and do stuff >
+    < return to caller
+    rts
+

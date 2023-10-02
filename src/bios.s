@@ -87,7 +87,6 @@
 
     the clock tick done by VIA_T1 is the only NMI of 6502toy.
     
-
 .ENDIF
 ;---------------------------------------------------------------------
 ;
@@ -141,7 +140,7 @@ bios_f = bios_void + $f   ; break flag
 ; at page three
 GHOSTS = $0300   
 
-; devices
+; devices list
 DEVICE0 = GHOSTS + $00 ; default $C000
 DEVICE1 = GHOSTS + $02 ; default $C010
 DEVICE2 = GHOSTS + $04 ; default $C020
@@ -151,7 +150,7 @@ DEVICE5 = GHOSTS + $0A ; default $C050
 DEVICE6 = GHOSTS + $0C ; default $C060
 DEVICE7 = GHOSTS + $0E ; default $C070
 
-; pointers
+; pointers list
 SEECLCK = GHOSTS + $EE
 TSTCHAR = GHOSTS + $F0
 PUTCHAR = GHOSTS + $F2
@@ -249,12 +248,13 @@ SLACK:  .res 220, $0
 ; must be at shadow rom copied to ghost ram
 
 _jump_nmi:
-    jmp ($03FA)
+    jmp (NMIVECT)
 
 _jump_irq:
-    jmp ($03FE)
+    jmp (IRQVECT)
 
 _jump_rst:
+    ; jmp (RSTVECT) never do that or hang ever boot
     jmp _rst_init
 
 ; void nmi,irq at boot
