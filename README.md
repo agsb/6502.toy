@@ -4,19 +4,20 @@
 
 ## Introduction
 
+_I seek for learn, not for speed._
+
 I had a Apple II. The Furby was a two 6502 'like' toy. I want make a SBC minimal as my toy.
 
-There are many "clones" [Ben Eater](https://eater.net/6502), [Mike](https://github.com/mike42/6502-computer), [Maarten](https://github.com/maarten-pennings/6502/tree/master), [Grant](http://searle.x10host.com/6502/Simple6502.html) and many others.
+There are many "clones" [Ben Eater](https://eater.net/6502), [Mike](https://github.com/mike42/6502-computer), [Maarten](https://github.com/maarten-pennings/6502/tree/master), [Grant](http://searle.x10host.com/6502/Simple6502.html), [Álvarez](https://www.ele.uva.es/~jesus/6502copy/proto.html) and others.
 
 And a Great support from [6502.org](http://6502.org/) forum and [Wilson Mines Co](http://wilsonminesco.com/).
 
-This is a board for testing the version for 6502 of Minimal Indirect Thread Code Forth as [IMMU](https://github.com/agsb/immu)
+This is a board for learn and testing the version for 6502 of Minimal Indirect Thread Code Forth as [IMMU](https://github.com/agsb/immu)
 
 PS. 
         [Ben Eater](https://www.youtube.com/watch?v=LnzuMJLZRdU) made a revival of 6502. 
         
-        I do not seek for speed.
-
+      
 ## Road Map
 
 - make all circuit plans
@@ -64,10 +65,17 @@ The pages $0400-$0FFF are reserved for future expansion, programs start at $1000
 
 The Forth uses RAM from $1000 to $BFFF and $00E0-$00EF 16 bytes at page zero.
 
+## Ideas
+
+- A ghost EEPROM, at boot copy self to RAM, disable EEPROM and copy self back.
+- Use 64k RAM and take all write as RAM and reads depends of a latch.
 
 ## Links
 
-https://www.ele.uva.es/~jesus/
+https://6502.org
+
+http://wilsonminesco.com/
+
 https://www.ele.uva.es/~jesus/6502copy/proto.html
 
 
