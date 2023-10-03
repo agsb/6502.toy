@@ -40,7 +40,7 @@ messages:
 
     .asciiz "Programming is learned by writing programs."
 
-    .asciiz "1N73LL163NC3 15 7H3 4B1L17Y 70 4D4P7 70 CH4NG35."
+    .asciiz "1n73ll163nc3 15 7h3 4b1l17y 70 4d4p7 70 ch4ng35."
 
     .asciiz "Git commit; Git push; Exit!"
 
@@ -56,9 +56,15 @@ messages:
 
     .asciiz "I really worry about everything going to the cloud."
 
-    .asciiz "Everthing about if, is, not, and, goto, label."
+    .asciiz "And, if, is, not, goto, label."
 
     .asciiz "We've got a problem, HAL."
+    
+    .asciiz "Houston, we've had a problem here." 
+
+    .asciiz "So long, and thanks for all the fish."
+
+    .asciiz "Do you know where your towel is ?"
 
     .asciiz "The Tao that is seen is not the true Tao."
     
@@ -71,6 +77,8 @@ messages:
     .asciiz " My God, it's full of stars."
     
     .asciiz "It can only be attributable to human error."
+
+    .asciiz "Perfection is when there is nothing left to take away."
 
     ; rollete as Pascal made, 32 is red, 15 is black, and so on
     ; 1/37 is 0,027027027

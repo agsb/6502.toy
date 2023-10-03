@@ -118,11 +118,36 @@
 ;   CONSTANTS
 ;
 ;---------------------------------------------------------------------
+; ASCII 
+
+    ESC_    =   27    ; ascii escape ^[
+ 
+    XON_    =   17    ; ascii DC1 ^Q
+    XOFF_   =   19    ; ascii DC3 ^S
+
+    ACK_    =    6    ; ascii ACK ^F 
+    NAK_    =   21    ; ascii NAK ^U delete line.
+
+    CR_     =   13    ; ascci carriage return ^M
+    LF_     =   10    ; ascii line feed ^J
+    BS_     =    8    ; ascii backspace ^H
+
+    BL_     =   32    ; ascii space
+    QT_     =   34    ; ascii double quotes \"
+
+;---------------------------------------------------------------------
+;   task or process states
+    HALT    = 0
+    IDLE    = 1
+    WAIT    = 2
+    BUSY    = 3
+
+;---------------------------------------------------------------------
 ;   at page zero
 ;   $F0 to $FF bios reserved 16 bytes
 ;
 bios_void = $F0
-bios_lnk = bios_void + $0
+bios_wrk = bios_void + $0
 bios_not = bios_void + $2  ; pending
 bios_cnt = bios_void + $4  ; nested
 bios_vec = bios_void + $6  ; resolver
@@ -406,7 +431,62 @@ _bios_soft_easy:
     lda bios_a
     rti
 
-    
+;---------------------------------------------------------------------
+getch:
+    rts
+
+putch:
+    rts
+
+;---------------------------------------------------------------------
+; max 255 bytes
+getline:
+    sta bios_wrk+0
+    stx bios_wrk+1
+    ldy #0
+@loop:
+    jsr getch
+    sta bios_wrk, y
+    cmp LF_
+    beq @ends
+    cmp CR_
+    beq @ends
+    tax
+    cmp BS_
+    dey
+    bne @loop
+    txa
+    cmp NAK_
+    ldy #0
+    beq @ends
+    txa
+    cmp #32
+    bmi @loop
+    cmp #126
+    bpl @loop
+    iny
+    bne @loop
+    dey
+@ends:
+    lda #0
+    sta bios_wrk, y
+    rts
+
+;---------------------------------------------------------------------
+; max 255 bytes
+putline:
+    sta bios_wrk+0
+    stx bios_wrk+1
+    ldy #0
+@loop:
+    lda bios_wrk, y
+    beq @ends
+    jsr putch
+    iny
+    bne @loop
+@ends:
+    rts
+
 ;---------------------------------------------------------------------
 ;   interrupts stubs, trampolines
 ;
@@ -438,7 +518,7 @@ _bios_load_registers:
 
 ;---------------------------------------------------------------------
 ;
-; clock tick
+; clock tick, using VIA T1 free run 
 ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
 ;
 clock_setup:
