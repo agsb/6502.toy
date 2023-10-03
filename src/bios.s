@@ -93,12 +93,15 @@
 ;   enable some ca65
 ;
 ; enable listing
+
 .list on
 
 ; identifiers
+
 .case +
 
 ; debug
+
 .debuginfo +
 
 ; enable features
@@ -108,6 +111,10 @@
 .feature string_escapes
 
 .feature org_per_seg
+
+.feature dollar_is_pc
+
+.feature pc_assignment
 
 ; enable 6502 mode
 
@@ -218,34 +225,31 @@ VIA_PAH    =  VIA+15   ; Its port A address no handshake
 
 ;----------------------------------------------------------------------
 ; at $FF00
-SHADOWS = $FF00
 
 .segment "SHADOWS"
+* = $FF00
 
-; references of devices, use downwards
-.word    DEVICES+00    ; _bios_hardware
-.word    DEVICES+10    ; _cia_one   
-.word    DEVICES+20    ; _via_one   
-.word    DEVICES+30    ; _via_two 
-.word    DEVICES+40    ; extra    
-.word    DEVICES+50    ; extra    
-.word    DEVICES+60    ; extra    
-.word    DEVICES+70    ; extra    
+; references of devices, 
+.repeat 16, R  
+    .word DEVICES+(R)*16
+.endrepeat
 
-SLACK:  .res 220, $0
-
-; pointers of routines, use upwards
-.word acia_pass   ; ec
-.word acia_pull   ; ee
-.word acia_push   ; f0
-.word clock_off   ; f2
-.word clock_on    ; f4
+; pointers of routines
+.word delay       ; e6
+.word getline     ; e8
+.word putline     ; ea
+.word hadch       ; ec
+.word getch       ; ee
+.word putch       ; f0
+.word clock_stop  ; f2
+.word clock_start ; f4
 .word monitor     ; f6
 .word copycat     ; f8
 
 ;---------------------------------------------------------------------
 ; at $FFFA
 .segment "VECTORS"
+* = $FFFA
 
 ; hardware jumpers
 .word _jump_nmi  ; fa ROM NMI vector
@@ -255,6 +259,9 @@ SLACK:  .res 220, $0
 ;---------------------------------------------------------------------
 ;
 .segment "ONCE"
+
+
+.byte 00,32,15,19,04,21,02,25,17,34,06,27,13,36,11,30,08,23,10,05,24,16,33,01,20,14,31,09,22,18,29,07,28,12,35,03,26,00
 
 ;---------------------------------------------------------------------
 ;
@@ -321,7 +328,7 @@ _init:
     ;jsr via_init 
 
     ; setup clock
-    jsr clock_setup
+    jsr clock_init
 
     ; enable interrupts
     
@@ -368,12 +375,14 @@ copycat:
 ;
 ; 7 * dy + 4 * dy * dx + 15
 ;
-; will loop till 256 * 256, 261900 cycles
-; (264208 if 8*dy + 4*dy*dx + 16)
-; uses a, x, y 
+; will loop 255 * 255, 261900 cycles
+; at 0.9216 MHz about 284 ms
+;
+; eg. 25.000 ms  is  75   75
+;
 ; y = dy, x = dx
 ;
-bios_delay: ; 6
+delay:             ; 6 call
 @loop:    
     txa            ; 2 Get delay loop 
 @y_delay: 
@@ -383,8 +392,15 @@ bios_delay: ; 6
     bne @x_delay   ; 2
     dey            ; 2
     bne @y_delay   ; 2
-    rts       ; 6 return
+    rts            ; 6 return
 
+;---------------------------------------------------------------------
+; delay 25ms, 0.9216 MHz phi0
+delay_25ms:
+    ldx #75
+    ldy #75
+    jsr delay
+    rts
 ;---------------------------------------------------------------------
 monitor:
     rts
@@ -432,45 +448,67 @@ _bios_soft_easy:
     rti
 
 ;---------------------------------------------------------------------
-getch:
+getch:  ; wait in loop could hang
+    jsr acia_pull
+    bcc getch
     rts
 
-putch:
+putch:  ; wait in loop could hang
+    jsr acia_push
+    bcc putch
     rts
 
+hadch:  ; no wait no loop no hang
+    jsr acia_test
+    rts
 ;---------------------------------------------------------------------
 ; max 255 bytes
+; mess with CR LF (Windows), LF (Unix) and CR (Macintosh) line break types.
 getline:
     sta bios_wrk+0
     stx bios_wrk+1
     ldy #0
 @loop:
     jsr getch
+    bcc @loop   
     sta bios_wrk, y
-    cmp LF_
+; minimal 
+    cmp CR_ ; ^M
     beq @ends
-    cmp CR_
+    cmp LF_ ; ^J
     beq @ends
-    tax
-    cmp BS_
-    dey
-    bne @loop
-    txa
-    cmp NAK_
+    cmp ESC_ ; ^[
     ldy #0
     beq @ends
-    txa
-    cmp #32
+    cmp NAK_ ; ^U
+    ldy #0
+    beq @ends
+    cmp BS_  ; ^H    
+    dey
+    bne @loop
+; invalid
+    cmp #32 
     bmi @loop
     cmp #126
     bpl @loop
+; valid
     iny
     bne @loop
+; full
     dey
 @ends:
+; null
     lda #0
     sta bios_wrk, y
     rts
+
+;@flag:
+;    sec
+;    lay
+;    bne @endf
+;    clc
+;@endf:
+;    rts
 
 ;---------------------------------------------------------------------
 ; max 255 bytes
@@ -481,7 +519,9 @@ putline:
 @loop:
     lda bios_wrk, y
     beq @ends
+@trie:
     jsr putch
+    bcc @trie
     iny
     bne @loop
 @ends:
@@ -521,7 +561,7 @@ _bios_load_registers:
 ; clock tick, using VIA T1 free run 
 ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
 ;
-clock_setup:
+clock_init:
     ; store counter
     lda #$00
     sta VIA_T1CL
@@ -534,19 +574,19 @@ clock_setup:
     sta VIA_ACR
 
 ; start clock
-clock_on:    
+clock_start:    
     lda #%11000000
     sta VIA_IER
     rts
 
 ; stop clock    
-clock_off:
+clock_stop:
     lda #%10000000
     sta VIA_IER
     rts
 
 ; counts ticks
-_bios_tick:
+clock_tick:
     bit VIA_T1CL
     inc bios_clk+0
     bne @ends
@@ -598,25 +638,15 @@ acia_init:
 
 ;-------------------------------------------------------------------------------
 ;   acia_push, transmit a byte thru 6551, receive byte in a
-;   waits
+;   no waits
 ;-------------------------------------------------------------------------------
 acia_push:
+; verify
     pha
-; wait while full
-@loop:
-    ldy #$FF
-@y_loop:    
-    ldx #$FF
-@x_loop:    
     lda CIA_STAT
     and #16
     bne @put_char
-    dex
-    cpx #0
-    bne @x_loop
-    dey
-    cpy #0
-    bne @y_loop
+    pla
     clc
     rts
 ; transmit
@@ -628,24 +658,13 @@ acia_push:
 
 ;-------------------------------------------------------------------------------
 ;   acia_pull, receive a byte thru 6551, return byte in a, carry set on ok
-;   waits
+;   no waits
 ;-------------------------------------------------------------------------------
 acia_pull:
-; wait while empty
-@loop:
-    ldy #$FF
-@y_loop:    
-    ldx #$FF
-@x_loop:    
+; verify
     lda CIA_STAT
     and #8
     bne @get_char
-    dex
-    cpx #0
-    bne @x_loop
-    dey
-    cpy #0
-    bne @y_loop
     clc
     rts
 ; receive
@@ -655,11 +674,10 @@ acia_pull:
     rts
 
 ;-------------------------------------------------------------------------------
-;   acia_pass, verify a 6551, carry set on yes
+;   acia_test, verify a 6551, carry set on yes
 ;   no waits
 ;-------------------------------------------------------------------------------
-acia_pass:
-; no wait
+acia_test:
 @loop:
     sec
     lda CIA_STAT
@@ -667,18 +685,6 @@ acia_pass:
     bne @ends
     clc
 @ends:    
-    rts
-
-;-------------------------------------------------------------------------------
-; Delay at least about 0.521 ms
-; 
-; for a 0,9216 MHz, using 14 and 19 
-;
-;-------------------------------------------------------------------------------
-acia_delay:
-    ldx #14
-    ldy #19
-    jsr bios_delay
     rts
 
 ;=====================================================================
