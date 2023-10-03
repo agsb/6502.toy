@@ -53,9 +53,13 @@ Use USART for VT100 terminal, Tera-Term or PuTTy at computer.
 
 The first RAM $0000-$03FF 1k reserved for system, and $00F0-$00FF 16 bytes at page zero. 
 
-The Wozniac Monitor uses RAM at $0200-$027F as terminal input buffer and $0024-$002B at page zero. 
+The Extended Wozniac Monitor uses RAM at $0200-$027F as terminal input buffer and $0024-$002B at page zero. 
 
-the Forth uses RAM from $0400 and $00E0-$00EF 16 bytes at page zero.
+The page $0300-$03FF is a list of references for devices and system (BIOS, MOS) routines.
+
+The pages $0400-$0FFF are reserved for future expansion, programs start at $1000 till $BFFF.
+
+The Forth uses RAM from $1000 to $BFFF and $00E0-$00EF 16 bytes at page zero.
 
 
 
