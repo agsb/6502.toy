@@ -31,13 +31,17 @@ Use wire wrap.
 
 Test NMOS-6502, CMOS-65C02,
 
-The memory map will be as in Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM. 
+The original memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM. 
+
+The actual memory map will be $0000-$BFFF 60k RAM, $F000-$F7FF 2k Devices, $F800-$FFFF 2k ROM. 
+
+At boot, the bios will copy bytes from a 64k eeprom I2C into RAM and jump to $1000.
 
 The board will have one 6551 ACIA and two 6522 VIA inside, with expansion of more 4 devices.
 
 The devices are mapped using a 3:8 74HC138 decoder, as $0 reserved, $1 ACIA, $2 VIA, $3 VIA, onboard and $4 to $7 at expansion.
 
-A clock board by crystal of 1.8432 for VIAs and by 74HC74 of 0.9612 for CPU, with a Real Timer Click as NMI with 10ms delay using a VIA T1 timer.
+A clock board by crystal of 1.8432 for CIA and by 74HC74 of 0.9612 for CPU and VIAS, with a Real Timer Click as NMI with 10ms delay using a VIA T1 timer.
 
 No video or keyboard, using terminal at USART 19200 8N1, RS-232, vt-100.
 
@@ -53,6 +57,16 @@ Use a BIOS and Forth,
 Use USART for VT100 terminal, Tera-Term or PuTTy at computer.
 
 
+### Bios
+
+    - clock tick
+    - copycat page
+    - copycat eeprom
+    - getch
+    - putch
+    - getline
+    - putline
+
 ## Memory 
 
 The first RAM $0000-$03FF 1k reserved for system, and $00F0-$00FF 16 bytes at page zero. 
@@ -61,9 +75,9 @@ The Extended Wozniac Monitor uses RAM at $0200-$027F as terminal input buffer an
 
 The page $0300-$03FF is a list of references for devices and system (BIOS, MOS) routines.
 
-The pages $0400-$0FFF are reserved for future expansion, programs start at $1000 till $BFFF.
+The pages $0400-$0FFF are reserved for future expansion, programs start at $1000.
 
-The Forth uses RAM from $1000 to $BFFF and $00E0-$00EF 16 bytes at page zero.
+The Forth uses RAM from $1000 to $EFFF and $00E0-$00EF 16 bytes at page zero.
 
 ## Ideas
 
