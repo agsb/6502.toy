@@ -231,37 +231,6 @@
 
     IRQVEC = $03FE
 
-;----------------------------------------------------------------------
-; at page
-* = $FF00
-
-; references of devices, 
-.repeat 8, R  
-    .word DEVS+(R)*16
-.endrepeat
-
-; pointers of routines
-.word delay       ; 
-.word getline     ; 
-.word putline     ; 
-.word getch       ; 
-.word putch       ; 
-.word clock_stop  ; 
-.word clock_start ; 
-.word monitor     ; 
-.word copycat     ; 
-
-.word $DE,$AD,$C0,$DE
-;---------------------------------------------------------------------
-; at $FFFA
-.segment "VECTORS"
-;* = $FF00
-
-; hardware jumpers
-.word _jump_nmi  ; fa ROM NMI vector
-.word _jump_rst  ; fc ROM Reset vector
-.word _jump_irq  ; fe ROM IRQ/BRK vector
-
 ;---------------------------------------------------------------------
 ;   at page zero
 ;   $E0 to $EF bios reserved 16 bytes
@@ -287,6 +256,36 @@ bios_work:  .word $0
 bios_what:  .word $0
 bios_when:  .word $0
 
+
+;----------------------------------------------------------------------
+; at page
+* = $FF00
+
+; references of devices, 
+.repeat 8, R  
+    .word DEVS+(R)*16
+.endrepeat
+
+; pointers of routines
+.word delay       ; 
+.word getline     ; 
+.word putline     ; 
+.word getch       ; 
+.word putch       ; 
+.word clock_stop  ; 
+.word clock_start ; 
+.word monitor     ; 
+.word copycat     ; 
+
+.word $DE,$AD,$C0,$DE
+;---------------------------------------------------------------------
+; at $FFFA
+.segment "VECTORS"
+
+; hardware jumpers
+.word _jump_nmi  ; fa ROM NMI vector
+.word _jump_rst  ; fc ROM Reset vector
+.word _jump_irq  ; fe ROM IRQ/BRK vector
 
 ;---------------------------------------------------------------------
 ;
