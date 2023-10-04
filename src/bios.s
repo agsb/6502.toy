@@ -87,6 +87,14 @@
 
     the clock tick done by VIA_T1 is the only NMI of 6502toy.
     
+### Best Practices
+
+    - On return, the carry flag is 0 for Ok.
+
+    - callee saves registers.
+
+    - do not make recursive routines.
+
 .ENDIF
 ;---------------------------------------------------------------------
 ;
@@ -133,10 +141,11 @@
     XOFF_   =   19    ; ascii DC3 ^S
 
     ACK_    =    6    ; ascii ACK ^F 
-    NAK_    =   21    ; ascii NAK ^U delete line.
+    NAK_    =   21    ; ascii NAK ^U also delete line.
 
     CR_     =   13    ; ascci carriage return ^M
     LF_     =   10    ; ascii line feed ^J
+    
     BS_     =    8    ; ascii backspace ^H
 
     BL_     =   32    ; ascii space
@@ -157,8 +166,7 @@ bios_void = $F0
 bios_wrk = bios_void + $0
 bios_not = bios_void + $2  ; pending
 bios_cnt = bios_void + $4  ; nested
-bios_vec = bios_void + $6  ; resolver
-bios_clk = bios_void + $8  ; clock tick
+bios_clk = bios_void + $6  ; clock counter 4 bytes.
 
 ; copycat registers
 bios_a = bios_void + $a   ; accumulator
@@ -235,10 +243,9 @@ VIA_PAH    =  VIA+15   ; Its port A address no handshake
 .endrepeat
 
 ; pointers of routines
-.word delay       ; e6
-.word getline     ; e8
-.word putline     ; ea
-.word hadch       ; ec
+.word delay       ; e8
+.word getline     ; ea
+.word putline     ; ed
 .word getch       ; ee
 .word putch       ; f0
 .word clock_stop  ; f2
@@ -260,14 +267,12 @@ VIA_PAH    =  VIA+15   ; Its port A address no handshake
 ;
 .segment "ONCE"
 
-
-.byte 00,32,15,19,04,21,02,25,17,34,06,27,13,36,11,30,08,23,10,05,24,16,33,01,20,14,31,09,22,18,29,07,28,12,35,03,26,00
-
+.byte 00,32,15,19,04,21,02,25,17,34,06,27,13,36,11,30,08,23,10
+.byte 05,24,16,33,01,20,14,31,09,22,18,29,07,28,12,35,03,26,00
+.byte $DE,$AD,$C0,$DE
 ;---------------------------------------------------------------------
 ;
-; some code adapted from 
-; http://wilsonminesco.com/0-overhead_Forth_interrupts/
-; and 6502.org forum
+; some code adapted from 6502.org forum
 ;
 ;---------------------------------------------------------------------
 ; interrups stubs, easy way
@@ -450,17 +455,14 @@ _bios_soft_easy:
 ;---------------------------------------------------------------------
 getch:  ; wait in loop could hang
     jsr acia_pull
-    bcc getch
+    bcs getch
     rts
 
 putch:  ; wait in loop could hang
     jsr acia_push
-    bcc putch
+    bcs putch
     rts
 
-hadch:  ; no wait no loop no hang
-    jsr acia_test
-    rts
 ;---------------------------------------------------------------------
 ; max 255 bytes
 ; mess with CR LF (Windows), LF (Unix) and CR (Macintosh) line break types.
@@ -470,23 +472,32 @@ getline:
     ldy #0
 @loop:
     jsr getch
-    bcc @loop   
+    bcs @loop   
     sta bios_wrk, y
 ; minimal 
+@cr:
     cmp CR_ ; ^M
     beq @ends
+@lf:    
     cmp LF_ ; ^J
     beq @ends
+@esc:    
     cmp ESC_ ; ^[
+    bne @nak
     ldy #0
     beq @ends
+@nak:    
     cmp NAK_ ; ^U
+    bne @bs
     ldy #0
     beq @ends
-    cmp BS_  ; ^H    
+@bs:    
+    cmp BS_  ; ^H
+    bne @ctr
     dey
     bne @loop
 ; invalid
+@ctr:
     cmp #32 
     bmi @loop
     cmp #126
@@ -500,6 +511,7 @@ getline:
 ; null
     lda #0
     sta bios_wrk, y
+    clc
     rts
 
 ;@flag:
@@ -521,7 +533,7 @@ putline:
     beq @ends
 @trie:
     jsr putch
-    bcc @trie
+    bcs @trie
     iny
     bne @loop
 @ends:
@@ -634,57 +646,41 @@ acia_init:
     lda #$0B     
     sta CIA_COMM
     pla             ; Restore A
+    clc
     rts
 
 ;-------------------------------------------------------------------------------
-;   acia_push, transmit a byte thru 6551, receive byte in a
-;   no waits
+;   acia_pull, receive a byte thru 6551, no waits
+;-------------------------------------------------------------------------------
+acia_pull:
+; verify
+    sec
+    lda CIA_STAT
+    and #8
+    beq @ends
+; receive
+    lda CIA_RX
+    clc
+@ends:
+    rts
+
+;-------------------------------------------------------------------------------
+;   acia_push, transmit a byte thru 6551, no waits
 ;-------------------------------------------------------------------------------
 acia_push:
 ; verify
     pha
     lda CIA_STAT
     and #16
-    bne @put_char
-    pla
-    clc
-    rts
+    beq @ends
 ; transmit
-@put_char:
     pla            	; Pull A from stack
     sta CIA_TX     	; Send A
-    sec
-    rts
-
-;-------------------------------------------------------------------------------
-;   acia_pull, receive a byte thru 6551, return byte in a, carry set on ok
-;   no waits
-;-------------------------------------------------------------------------------
-acia_pull:
-; verify
-    lda CIA_STAT
-    and #8
-    bne @get_char
     clc
     rts
-; receive
-@get_char:
-    lda CIA_RX
-    sec
-    rts
-
-;-------------------------------------------------------------------------------
-;   acia_test, verify a 6551, carry set on yes
-;   no waits
-;-------------------------------------------------------------------------------
-acia_test:
-@loop:
-    sec
-    lda CIA_STAT
-    and #8
-    bne @ends
-    clc
 @ends:    
+    pla
+    sec
     rts
 
 ;=====================================================================
@@ -726,13 +722,36 @@ ret_isr:
 	rti
 
 ;---------------------------------------------------------------------
-; if pool
-;
 ;ISR:
 ;    bit VIA1_STAT
 ;    bmi service_via1
 ;    bit VIA2_STAT
 ;    bmi service_via2
 ;    jmp service_acia
+;---------------------------------------------------------------------
+; convert an ASCII character to a binary number
+qdigit:
+@number:
+    cmp #'0'-1
+    bcc @nohex
+    cmp #'9'+1
+    bcs @letter
+    sbc #'0'
+    clc
+    rts
+@letter:    
+    ora #32 
+    cmp #'a'-1
+    bcc @nohex
+    cmp #'f'+1
+    bcs @nohex
+    sbc #'a'-10
+    clc
+    rts
+@nohex:    
+    sec
+    rts
 
 ;---------------------------------------------------------------------
+
+
