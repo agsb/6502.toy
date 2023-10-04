@@ -37,7 +37,7 @@ l)
     ;;
 
 x)
-    rm $2.obj $2.dep $2.asm $2.map $2.lbl $2.lst out err c64/*
+    rm $2.obj $2.dep $2.asm $2.map $2.lbl $2.lst out err *.bin 
     
     ;;
 
