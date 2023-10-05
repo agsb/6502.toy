@@ -31,11 +31,8 @@ Use wire wrap.
 
 Test NMOS-6502, CMOS-65C02,
 
-The original memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM. 
 
-The actual memory map will be $0000-$BFFF 60k RAM, $F000-$F7FF 2k Devices, $F800-$FFFF 2k ROM. 
-
-At boot, the bios will copy bytes from a 64k eeprom I2C into RAM and jump to $1000.
+The actual memory map will be 64k RAM $0000-$BFFF, 2k Devices $F000-$F7FF and $F800-$FFFF 2k ROM. 
 
 The board will have one 6551 ACIA and two 6522 VIA inside, with expansion of more 4 devices.
 
@@ -45,19 +42,25 @@ A clock board by crystal of 1.8432 for CIA and by 74HC74 of 0.9612 for CPU and V
 
 No video or keyboard, using terminal at USART 19200 8N1, RS-232, vt-100.
 
-Could use I2C and SPI protocols and devices.
+Using a LCD 16x2 and a keyboard with 6 keys for minimal use
+
+Using I2C and SPI protocols and devices. 
+
+The board have 2 8-pins slots for I2C epproms.
 
 Use [65SIB](http://forum.6502.org/viewtopic.php?t=1064&start=105)
 
-
 ## Software
+
+At boot, the bios will copy bytes from a 64k eeprom I2C into RAM and jump to $1000.
 
 Use a BIOS and Forth, 
 
 Use USART for VT100 terminal, Tera-Term or PuTTy at computer.
 
-
 ### Bios
+
+generic routines at bios:
 
     - clock tick
     - copycat page
@@ -77,11 +80,11 @@ The page $0300-$03FF is a list of references for devices and system (BIOS, MOS) 
 
 The pages $0400-$0FFF are reserved for future expansion, programs start at $1000.
 
-The Forth uses RAM from $1000 to $EFFF and $00E0-$00EF 16 bytes at page zero.
+The Forth uses RAM from $1000 to $EFFF and $00D0-$00DF 16 bytes at page zero.
 
 ## Ideas
 
-- A ghost EEPROM, at boot copy self to RAM, disable EEPROM and copy self back.
+- The initial memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
 - Use 64k RAM and take all write as RAM and reads depends of a latch.
 
 ## Links
