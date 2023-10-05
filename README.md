@@ -32,17 +32,17 @@ Use wire wrap.
 Test NMOS-6502, CMOS-65C02,
 
 
-The actual memory map will be 64k RAM $0000-$BFFF, 2k Devices $F000-$F7FF and $F800-$FFFF 2k ROM. 
+The actual memory map will be 60k RAM $0000-$BFFF, 2k Devices $F000-$F7FF and $F800-$FFFF 2k ROM. 
 
 The board will have one 6551 ACIA and two 6522 VIA inside, with expansion of more 4 devices.
 
-The devices are mapped using a 3:8 74HC138 decoder, as $0 reserved, $1 ACIA, $2 VIA, $3 VIA, onboard and $4 to $7 at expansion.
+The devices are mapped at $F000, $F010 to $F0F0, reserving 16 bytes for control for each device. Also using a 3:8 74HC138 decoder, with $0 reserved, $1 ACIA, $2 VIA, $3 VIA, onboard and $4 to $7 at expansion.
 
-A clock board by crystal of 1.8432 for CIA and by 74HC74 of 0.9612 for CPU and VIAS, with a Real Timer Click as NMI with 10ms delay using a VIA T1 timer.
+A clock board by crystal of 1.8432 for CIA and by 74HC74 of 0.9612 for CPU, with a Real Timer Click as NMI with 10ms delay using a VIA T1 timer.
 
 No video or keyboard, using terminal at USART 19200 8N1, RS-232, vt-100.
 
-Using a LCD 16x2 and a keyboard with 6 keys for minimal use
+Using a LCD 16x2, a keyboard with 6 keys and some led for minimal use.
 
 Using I2C and SPI protocols and devices. 
 
@@ -52,7 +52,7 @@ Use [65SIB](http://forum.6502.org/viewtopic.php?t=1064&start=105)
 
 ## Software
 
-At boot, the bios will copy bytes from a 64k eeprom I2C into RAM and jump to $1000.
+At boot, the bios will copy bytes from a I2C 64k eeprom into RAM at $1000 and jump to $1000.
 
 Use a BIOS and Forth, 
 
@@ -72,9 +72,11 @@ generic routines at bios:
 
 ## Memory 
 
-The first RAM $0000-$03FF 1k reserved for system, and $00F0-$00FF 16 bytes at page zero. 
+The first 4k of RAM $0000-$0FFF is reserved for system.
 
-The Extended Wozniac Monitor uses RAM at $0200-$027F as terminal input buffer and $0024-$002B at page zero. 
+The $03FF 1k reserved for system, and $E0-$FF 32 bytes at page zero. 
+
+The Extended Wozniac Monitor uses RAM at $0200-$027F as terminal input buffer and $24-$2B at page zero. 
 
 The page $0300-$03FF is a list of references for devices and system (BIOS, MOS) routines.
 
