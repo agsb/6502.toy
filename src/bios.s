@@ -231,6 +231,8 @@
 
     IRQVEC = $03FE
 
+    buffer = $0200
+
 ;---------------------------------------------------------------------
 ;   at page zero
 ;   $E0 to $EF bios reserved 16 bytes
@@ -256,6 +258,8 @@ bios_work:  .word $0
 bios_what:  .word $0
 bios_when:  .word $0
 
+rd_ptr: .byte $0
+wr_ptr: .byte $0
 
 ;----------------------------------------------------------------------
 ; at page
@@ -277,7 +281,8 @@ bios_when:  .word $0
 .word monitor     ; 
 .word copycat     ; 
 
-.word $DE,$AD,$C0,$DE
+.byte $DE,$AD,$C0,$DE
+
 ;---------------------------------------------------------------------
 ; at $FFFA
 .segment "VECTORS"
@@ -358,14 +363,14 @@ _init:
 
     ; enable interrupts
     
-    lda #<_bios_init_easy
+    lda #<_bios_irq
     sta IRQVEC+0
-    lda #>_bios_init_easy
+    lda #>_bios_irq
     sta IRQVEC+1
 
-    lda #<_bios_init_easy
+    lda #<_bios_nmi
     sta NMIVEC+0
-    lda #>_bios_init_easy
+    lda #>_bios_nmi
     sta NMIVEC+1
 
     ; copy eeprom I2C to $1000
@@ -452,12 +457,34 @@ monitor:
     rts
 
 ;======================================================================
-; real irq handler
+; NMI, counts ticks
+;---------------------------------------------------------------------
+_bios_nmi:
+
+_bios_tick:
+    bit VIA_T1CL
+    inc bios_tick+0
+    bne @ends
+    inc bios_tick+1
+    bne @ends
+    inc bios_tick+2
+    bne @ends
+    inc bios_tick+3
+@ends:
+    rti
+
+;======================================================================
+; IRQ|BRK, handler
 ; easy minimal 
 ;---------------------------------------------------------------------
+_bios_irq:
 
 _bios_init_easy:
+    sei
     sta bios_a
+    stx bios_x
+    sty bios_y
+@easy:
     pla
     pha
     and #$10
@@ -466,7 +493,10 @@ _bios_init_easy:
 
 ;---------------------------------------------------------------------
 _bios_ends_easy:
+    ldy bios_y
+    ldx bios_x
     lda bios_a
+    cli
     rti
 
 ;---------------------------------------------------------------------
@@ -481,6 +511,8 @@ _bios_hard_easy:
     bpl @scan_cia
 	jmp service_tia
 @scan_cia:
+    lda CIA_STAT
+    bpl @scan_panic
     jmp service_cia
 @scan_panic:
     jmp _bios_ends_easy
@@ -550,15 +582,20 @@ _bios_load_registers:
     rti
 
 ;======================================================================
+
 ;---------------------------------------------------------------------
-getch:  ; wait in loop could hang
-    jsr acia_pull
+; getch, wait in loop could hang
+;---------------------------------------------------------------------
+getch:  
+    jsr acia_rx
     bcs getch
     rts
 
 ;---------------------------------------------------------------------
-putch:  ; wait in loop could hang
-    jsr acia_push
+; puch, wait in loop could hang
+;---------------------------------------------------------------------
+putch:  
+    jsr acia_tx
     bcs putch
     rts
 
@@ -668,28 +705,6 @@ clock_stop:
     rts
 
 ;---------------------------------------------------------------------
-; counts ticks
-;---------------------------------------------------------------------
-clock_tick:
-    bit VIA_T1CL
-    inc bios_tick+0
-    bne @ends
-    inc bios_tick+1
-    bne @ends
-    inc bios_tick+2
-    bne @ends
-    inc bios_tick+3
-@ends:
-    rti
-
-;count:
-;    inc CNT+0
-;    bne @ends
-;    inc CNT+1
-;@ends:
-
-
-;---------------------------------------------------------------------
 ;   acia_init, configures 19200,N,8,1 FIXED
 ;---------------------------------------------------------------------
 acia_init:
@@ -708,9 +723,56 @@ acia_init:
     rts
 
 ;-------------------------------------------------------------------------------
+;   acia_rd, circular buffer, no waits
+;-------------------------------------------------------------------------------
+acia_rd:
+    ldx rd_ptr
+    lda buffer, x
+    inc rd_ptr
+@xon:
+    jsr acia_df
+    CMP #$E0
+    bcs @ends
+    lda #9
+    sta CIA_COMM
+    lda XON_
+    jsr acia_tx
+    bcs @xon
+@ends:    
+    rts
+
+;-------------------------------------------------------------------------------
+;   acia_wd, circular buffer, no waits
+;-------------------------------------------------------------------------------
+acia_wr:
+    ldx wr_ptr
+    sta buffer, x
+    inc wr_ptr
+@xoff: 
+    jsr acia_df
+    cmp #$F0
+    bcc @ends
+    lda #1
+    sta CIA_COMM
+    lda XOFF_
+    jsr acia_tx
+    bcs @xoff
+@ends:    
+    rts
+
+;-------------------------------------------------------------------------------
+;   acia_df, circular buffer, no waits
+;-------------------------------------------------------------------------------
+acia_df:
+    lda wr_ptr
+    sec
+    sbc rd_ptr
+    rts
+
+;-------------------------------------------------------------------------------
 ;   acia_pull, receive a byte thru 6551, no waits
 ;-------------------------------------------------------------------------------
-acia_pull:
+acia_rx:
 ; verify
     sec
     lda CIA_STAT
@@ -725,7 +787,7 @@ acia_pull:
 ;-------------------------------------------------------------------------------
 ;   acia_push, transmit a byte thru 6551, no waits
 ;-------------------------------------------------------------------------------
-acia_push:
+acia_tx:
 ; verify
     pha
     lda CIA_STAT

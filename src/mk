@@ -24,6 +24,10 @@ c)
     --cpu 6502 \
     $2.s 2> err | tee out 
 
+    od --endian=big -x < ram.bin > ram.hx
+
+    od --endian=big -x < rom.bin > rom.hx
+
 # --add-source --create-dep $2.dep \
 # -vm -v \
 # -O0 -W1 -c -T -S \
@@ -37,7 +41,7 @@ l)
     ;;
 
 x)
-    rm $2.obj $2.dep $2.asm $2.map $2.lbl $2.lst out err *.bin 
+    rm $2.obj $2.dep $2.asm $2.map $2.lbl $2.lst out err *.bin *.hx 
     
     ;;
 
