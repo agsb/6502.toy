@@ -27,10 +27,26 @@ PS.
 
 ## Hardware
 
+### B.O.M
+
+        - 01 x NMOS 6502, or CMOS 65C02
+        - 01 x AT28C16, or AT28C64
+        - 01 x 62256,
+        - 02 x AT24LC512, 
+        - 02 x CMOS 6522
+        - 01 x CMOS 6551
+        - 02 x 74HC00,
+        - 01 x 74HC32,
+        - 01 x 74HC74
+        - 04 x 3k3 Ohm
+        - 12 x 0.1 uF
+        - 01 x +4.7 uF 
+        -
+All devices are CMOS and 5V capable.        
+
 Use wire wrap. 
 
 Test NMOS-6502, CMOS-65C02,
-
 
 The actual memory map will be 60k RAM $0000-$BFFF, 2k Devices $F000-$F7FF and $F800-$FFFF 2k ROM. 
 
