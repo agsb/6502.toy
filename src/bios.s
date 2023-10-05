@@ -462,6 +462,7 @@ monitor:
 _bios_nmi:
 
 _bios_tick:
+    cld
     bit VIA_T1CL
     inc bios_tick+0
     bne @ends
@@ -480,6 +481,7 @@ _bios_tick:
 _bios_irq:
 
 _bios_init_easy:
+    cld
     sei
     sta bios_a
     stx bios_x
