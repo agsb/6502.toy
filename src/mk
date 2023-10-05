@@ -24,18 +24,20 @@ c)
     --cpu 6502 \
     $2.s 2> err | tee out 
 
-    od --endian=big -x < ram.bin > ram.hx
-
-    od --endian=big -x < rom.bin > rom.hx
-
 # --add-source --create-dep $2.dep \
 # -vm -v \
 # -O0 -W1 -c -T -S \
 
     ;;
 
-l)
+o)
+    od --endian=big -x < ram.bin > ram.hx
 
+    od --endian=big -x < rom.bin > rom.hx
+
+    ;;
+
+l)
     ld65 -o $2.bin -m $2.map -Ln $2.lbs -C $2.cfg $2.obj
     
     ;;
@@ -45,10 +47,13 @@ x)
     
     ;;
 
+w)
+    grep HEADER *.s | grep -v immu > words
+    ;;
+
 esac
 
 echo " stop compiling "
 
-grep HEADER *.s | grep -v immu > words
 
 
