@@ -255,11 +255,20 @@ bios_tick:  .word $0, $0
 bios_from:  .word $0
 bios_into:  .word $0
 bios_work:  .word $0
+
+; $00F0
+
+bios_void:  .word $0
 bios_what:  .word $0
 bios_when:  .word $0
+bios_then:  .word $0
+bios_last:  .word $0
+bios_hash:  .word $0
 
 rd_ptr: .byte $0
 wr_ptr: .byte $0
+
+.assert * > $00FF, warning, "~ bios page zero over stack limit"
 
 ;----------------------------------------------------------------------
 ; at page
@@ -272,10 +281,10 @@ wr_ptr: .byte $0
 
 ; pointers of routines
 .word delay       ; 
-.word getline     ; 
-.word putline     ; 
-.word getch       ; 
-.word putch       ; 
+.word gets     ; 
+.word puts     ; 
+.word getc        ; 
+.word putc        ; 
 .word clock_stop  ; 
 .word clock_start ; 
 .word monitor     ; 
@@ -283,6 +292,7 @@ wr_ptr: .byte $0
 
 .byte $DE,$AD,$C0,$DE
 
+.assert * > $FFFA, warning, "~ bios page last over vector limit"
 ;---------------------------------------------------------------------
 ; at $FFFA
 .segment "VECTORS"
@@ -296,7 +306,9 @@ wr_ptr: .byte $0
 ;
 .segment "ONCE"
 
+
 .byte $DE,$AD,$C0,$DE
+_rollete:
 .byte 00,32,15,19,04,21,02,25,17,34,06,27,13,36,11,30,08,23,10
 .byte 05,24,16,33,01,20,14,31,09,22,18,29,07,28,12,35,03,26,00
 
@@ -373,6 +385,9 @@ _init:
     lda #>_bios_nmi
     sta NMIVEC+1
 
+    ; alive
+    jsr beep
+
     ; copy eeprom I2C to $1000
     jsr eecopy
 
@@ -380,6 +395,16 @@ _init:
     ldx #$FF
     txs
     
+    ; clear break
+    lda #0
+    sta bios_last+0
+    sta bios_last+1
+
+    ; alive
+    jsr beep
+    
+    ; lcd init
+
     ; there we go....
     cli
     jsr _main
@@ -387,6 +412,12 @@ _init:
 _main:
     ; insanity for safety
     jmp $1000
+
+
+;---------------------------------------------------------------------
+; beep
+beep:
+    rts
 
 ;---------------------------------------------------------------------
 ; copy default page from ROM to RAM
@@ -586,31 +617,31 @@ _bios_load_registers:
 ;======================================================================
 
 ;---------------------------------------------------------------------
-; getch, wait in loop could hang
+; getc , wait in loop could hang
 ;---------------------------------------------------------------------
-getch:  
+getc :  
     jsr acia_rx
-    bcs getch
+    bcs getc 
     rts
 
 ;---------------------------------------------------------------------
 ; puch, wait in loop could hang
 ;---------------------------------------------------------------------
-putch:  
+putc :  
     jsr acia_tx
-    bcs putch
+    bcs putc 
     rts
 
 ;---------------------------------------------------------------------
 ; max 255 bytes
 ; mess with CR LF (Windows), LF (Unix) and CR (Macintosh) line break types.
 ;---------------------------------------------------------------------
-getline:
+gets:
     sta bios_work+0
     stx bios_work+1
     ldy #0
 @loop:
-    jsr getch
+    jsr getc 
     bcs @loop   
     sta (bios_work), y
 ; minimal 
@@ -657,7 +688,7 @@ getline:
 ;---------------------------------------------------------------------
 ; max 255 bytes
 ;---------------------------------------------------------------------
-putline:
+puts:
     sta bios_work+0
     stx bios_work+1
     ldy #0
@@ -665,7 +696,7 @@ putline:
     lda (bios_work), y
     beq @ends
 @trie:
-    jsr putch
+    jsr putc 
     bcs @trie
     iny
     bne @loop
