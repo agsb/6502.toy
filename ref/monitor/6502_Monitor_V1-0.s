@@ -1,4 +1,4 @@
-ommands follow the usual "Zapple" like commands
+;Commands follow the usual "Zapple" like commands
 ;Display memory D123,567
 ;Move memory M123,1003,4567
 ;Fill memory F1234,4567,00

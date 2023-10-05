@@ -246,7 +246,7 @@ bios_x:  .byte $0
 bios_y:  .byte $0
 bios_s:  .byte $0
 bios_p:  .byte $0
-bios_f:  .byte $0
+bios_w:  .byte $0
 
 ; clock
 bios_tick:  .word $0, $0
@@ -359,7 +359,7 @@ _init:
     cld
 
     ; copy default page
-    jsr copycat
+    copycat
 
     ; setup via one
     jsr via_init 
@@ -389,7 +389,7 @@ _init:
     jsr beep
 
     ; copy eeprom I2C to $1000
-    jsr eecopy
+    jsr copyeep
 
     ; stack: pull is decr, push is incr
     ldx #$FF
@@ -415,6 +415,10 @@ _main:
 
 
 ;---------------------------------------------------------------------
+
+.include "i2c.s"
+
+;---------------------------------------------------------------------
 ; beep
 beep:
     rts
@@ -423,12 +427,15 @@ beep:
 ; copy default page from ROM to RAM
 ;---------------------------------------------------------------------
 copycat:
-    ldy #$00
-@loop:    
-    lda SHADOWS, y
-    sta GHOSTS, y
-    iny
-    bne @loop
+    lda #<SHADOWS
+    sta bios_from+0
+    lda #>SHADOWS
+    sta bios_from+1
+    lda #<GHOSTS
+    sta bios_into+0
+    lda #>GHOSTS
+    sta bios_into+1
+    jsr _qcopy
     rts
 
 ;---------------------------------------------------------------------
@@ -439,16 +446,47 @@ copycat:
 ;   478 I2C pages of 128 bytes
 ;   Magics
 ;---------------------------------------------------------------------
-eecopy:
-    lda #$00
+copyeep:
+    lda #00
     sta bios_from+0
-    lda #$10
+    lda #02
     sta bios_from+1
-    lda #$DE
-    sta bios_work+0
-    lda #$01
-    sta bios_work+1
+    lda #00
+    sta bios_into+0
+    lda #10
+    sta bios_into+1
+    ;
+    ; wait eeprom ready
+    ; prepare eeprom 
+    ; set address 000
+    ;
+@loop:
+    ; 
+    ; load half page (128 bytes) 
+    ; from eeprom at address bios_into into RAM at bios_from
+    ldx #$80
+    jsr _i2c_read_page
+    ; copy half page from RAM at bios_from into RAM at bios_into
+    ldx #$80
+    jsr_qcopy
+    ; update bios_into a half page
+    clc
+    lda #$80
+    adc bios_into+0
+    sta bios_into+1
+    bcc @next
+    inc bios_into+1
+@next:
+    ldx #F0
+    cpx bios_into+1
+    bne @loop
+@ends:
     rts
+
+
+    ; 
+    jsr _qcopy
+
 
 ;---------------------------------------------------------------------
 ; coarse delay loop
