@@ -1,38 +1,12 @@
-;---------------------------------------------------------------------
-; /*
-;  *  DISCLAIMER"
-;  *
-;  *  Copyright © 2020, Alvaro Gomes Sobral Barcellos,
-;  *
-;  *  Permission is hereby granted, free of charge, to any person obtaining
-;  *  a copy of this software and associated documentation files (the
-;  *  "Software"), to deal in the Software without restriction, including
-;  *  without limitation the rights to use, copy, modify, merge, publish,
-;  *  distribute, sublicense, and/or sell copies of the Software, and to
-;  *  permit per0ons to whom the Software is furnished to do so, subject to
-;  *  the following conditions"
-;  *
-;  *  The above copyright notice and this permission notice shall be
-;  *  included in all copies or substantial portions of the Software.
-;  *
-;  *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-;  *  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-;  *  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE and
-;  *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-;  *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-;  *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-;  *
-;  */
-;
-;   LICENSE: http://creativecommons.org/licenses/by-nc-sa/4.0/
-;
-;---------------------------------------------------------------------
-; 05/10/2023: adapted from ://www.ele.uva.es/~jesus/6502copy/nrom2/i2c.s
 
+; 05/10/2023: adapted from ://www.ele.uva.es/~jesus/6502copy/nrom2/i2c.s
 ; ------------------------------------------------------------------------
-; send a Start
-	.export	_i2c_start
-_i2c_start:	
+; ------------------------------------------------------------------------
+; 				I2C
+; ------------------------------------------------------------------------
+; ------------------------------------------------------------------------
+	.export	start
+start:	
 	lda	DDRA		
 	ora	#(1<<SDA)	; SDA = L
 	sta	DDRA	
@@ -40,10 +14,8 @@ _i2c_start:
 	sta	DDRA
 	rts
 	
-; ------------------------------------------------------------------------
-; send a Stop
-	.export	_i2c_stop
-_i2c_stop:	
+	.export	stop
+stop:	
 	lda	DDRA		
 	ora	#(1<<SDA)	; SDA = L
 	sta	DDRA
@@ -53,10 +25,10 @@ _i2c_stop:
 	sta	DDRA
 	rts
 
-;------------------------------------------------------------------------
-; write A through the I2C bus, 
-	.export	_i2c_putc
-_i2c_putc:
+; send A through the I2C bus 
+
+	.export	outbyte
+outbyte:
 	ldx	#8
 @ob1:	
 	asl	a
@@ -79,11 +51,11 @@ _i2c_putc:
 	bne	@ob1
 	rts
 
-;------------------------------------------------------------------------
-; read A from the I2C bus,
+; read a byte from the I2C bus and returns it in A
 ; tmp2: modiffied
-	.export	_i2c_getc
-_i2c_getc:
+
+	.export	inbyte
+inbyte:
 	ldx	#8
 @ib1:	
 	lda	DDRA
@@ -103,9 +75,9 @@ _i2c_getc:
 	lda	tmp2
 	rts
 
-;------------------------------------------------------------------------
 ; Check the ACK bit
 ; returns Cy=1 if NACK
+
 	.export	tstack
 tstack:	
 	lda	DDRA
@@ -124,14 +96,14 @@ tstack:
 	sta	DDRA
 	rts
 
-;------------------------------------------------------------------------
 ; generates an ACK or NACK bit, always returns with Z=0
+
 	.export	genack, gennack
-_i2c_genack: 
+genack: 
 	lda	DDRA
 	ora	#(1<<SDA)	; SDA = L
-	bne	@gak1		
-_i2c_gennack:
+	bne	@gak1		; unconditional
+gennack:
 	lda	DDRA
 	and	#~(1<<SDA)	; SDA = H
 @gak1:	
@@ -150,16 +122,17 @@ _i2c_gennack:
 ; tmp3:	EEPROM byte address 
 ; X: EEPROM I2C address (left aligned i.e. $A0) 
 ; returns CY=1 if NACK, CY=0 if OK. tmp1, X e Y modiffied
-	.export	_i2c_puts
-_i2c_puts:	
+
+	.export	i2cwr
+i2cwr:	
 	jsr	start
 	txa
 	and	#$FE		; ensure write
-	jsr	_i2c_putc
+	jsr	outbyte
 	jsr	tstack
 	bcs	i2sn2		; NACK -> abort
 	lda	tmp3
-	jsr	_i2c_putc
+	jsr	outbyte
 	jsr	tstack
 	bcs	i2sn2		; NACK -> abort
 	ldy	#0
@@ -168,7 +141,7 @@ _i2c_puts:
 @i2sn1:	
 	lda	(ptr1),y
 	iny
-	jsr	_i2c_putc
+	jsr	outbyte
 	jsr	tstack
 	bcs	i2sn2
 	dec	tmp1
@@ -187,12 +160,12 @@ i2mf2:
 ; X: I2C address (left aligned)
 ; returns CY=1 if NACK, CY=0 if OK. tmp1, X e Y modiffied
 
-	.export	_i2c_gets
-_i2c_gets:	
+	.export	i2crd
+i2crd:	
 	jsr	start
 	txa
 	ora	#1		; ensure read
-	jsr	_i2c_putc
+	jsr	outbyte
 	jsr	tstack
 	bcs	i2sn2		; NACK -> abort
 	ldy	#0
@@ -200,7 +173,7 @@ _i2c_gets:
 	lda	DDRA
 	and	#~(1<<SDA)	; SDA = H
 	sta	DDRA
-	jsr	_i2c_getc		; data read
+	jsr	inbyte		; data read
 	sta	(ptr1),y
 	iny
 	dec	tmp1
@@ -229,7 +202,7 @@ bootI2C:
 	sta	tmp1
 	sta	tmp3		; Reset the EEPROM counter
 	ldx	#$A0
-	jsr	_i2c_puts
+	jsr	i2cwr
 	bcs	i2mf2
 	lda	#(14+128+64)	; 14th pos. on LCD
 	jsr	LCD_cmd
@@ -240,7 +213,7 @@ bootI2C:
 	lda	#6		; reading just the 6-byte header
 	sta	tmp1
 	ldx	#$A0
-	jsr	_i2c_gets
+	jsr	i2crd
 	bcs	i2mf
 	lda	#$B0
 	cmp	fatbuf
@@ -269,13 +242,13 @@ i3cmem:
 	sta	tmp3
 	ldx	#$A0
 	stx	tmp4		; I2C address (increments every 256 bytes)
-	jsr	_i2c_puts
+	jsr	i2cwr
 	bcs	i2mf
 	lda	#8
 	sta	tmp3		; page counter (8 pages * 256 bytes = 2kb)
 i2m1:	
 	ldx	tmp4
-	jsr	_i2c_gets		; 256 byte read
+	jsr	i2crd		; 256 byte read
 	bcs	i2mf
 	inc	ptr1+1
 	inc	tmp4

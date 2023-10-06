@@ -447,46 +447,72 @@ copycat:
 ;   Magics
 ;---------------------------------------------------------------------
 copyeep:
-    lda #00
-    sta bios_from+0
-    lda #02
-    sta bios_from+1
-    lda #00
+    lda #$00
     sta bios_into+0
-    lda #10
+    lda #$10
     sta bios_into+1
-    ;
-    ; wait eeprom ready
-    ; prepare eeprom 
-    ; set address 000
-    ;
+    lda #$00
+    sta bios_from+0
+    lda #$F0
+    sta bios_from+1
+    ldx #$80
+    sta bios_w
+    jsr _rem2ram
+    rts
+
+;---------------------------------------------------------------------
+; need adjust steps
+_rem2ram: 
+@init:
+    ldy #$00
 @loop:
+    _i2c_getc
+    sta (bios_into),y
+    iny
+    cpy bios_w
+    bne loop
     ; 
-    ; load half page (128 bytes) 
-    ; from eeprom at address bios_into into RAM at bios_from
-    ldx #$80
-    jsr _i2c_read_page
-    ; copy half page from RAM at bios_from into RAM at bios_into
-    ldx #$80
-    jsr_qcopy
-    ; update bios_into a half page
-    clc
-    lda #$80
+    lda bios_w
     adc bios_into+0
-    sta bios_into+1
+    sta bios_into+0
     bcc @next
     inc bios_into+1
 @next:
-    ldx #F0
+    ldx bios_from+0
+    cpx bios_into+0
+    bne @init
+    ldx bios_from+1
     cpx bios_into+1
-    bne @loop
+    bne @init
 @ends:
     rts
 
-
+;---------------------------------------------------------------------
+; need adjust steps
+_ram2rem:    
+@cast:
+    ldy #$00
+@loop:
+    lda (bios_into),y
+    _i2c_putc
+    iny
+    cpy bios_w
+    bne loop
     ; 
-    jsr _qcopy
-
+    lda bios_w
+    adc bios_into+0
+    sta bios_into+0
+    bcc @next
+    inc bios_into+1
+@next:
+    ldx bios_from+0
+    cpx bios_into+0
+    bne @cast
+    ldx bios_from+1
+    cpx bios_into+1
+    bne @cast
+@ends:
+    rts
 
 ;---------------------------------------------------------------------
 ; coarse delay loop
