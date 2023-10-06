@@ -1,293 +1,314 @@
-;---------------------------------------------------------------------
-; /*
-;  *  DISCLAIMER"
-;  *
-;  *  Copyright © 2020, Alvaro Gomes Sobral Barcellos,
-;  *
-;  *  Permission is hereby granted, free of charge, to any person obtaining
-;  *  a copy of this software and associated documentation files (the
-;  *  "Software"), to deal in the Software without restriction, including
-;  *  without limitation the rights to use, copy, modify, merge, publish,
-;  *  distribute, sublicense, and/or sell copies of the Software, and to
-;  *  permit per0ons to whom the Software is furnished to do so, subject to
-;  *  the following conditions"
-;  *
-;  *  The above copyright notice and this permission notice shall be
-;  *  included in all copies or substantial portions of the Software.
-;  *
-;  *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-;  *  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-;  *  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE and
-;  *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-;  *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-;  *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-;  *
-;  */
+; adapted from 
+; Copyright (c) 2015, Dieter Hauer
 ;
-;   LICENSE: http://creativecommons.org/licenses/by-nc-sa/4.0/
+; Copyright (c) 2023, Alvaro Gomes Sobral Barcellos
+; All rights reserved.
+; 
+; Redistribution and use in source and binary forms, with or without
+; modification, are permitted provided that the following conditions are met:
+; 
+; 1. Redistributions of source code must retain the above copyright notice, this
+;    list of conditions and the following disclaimer.
+; 2. Redistributions in binary form must reproduce the above copyright notice,
+;    this list of conditions and the following disclaimer in the documentation
+;    and/or other materials provided with the distribution.
+; 
+; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+; ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+; ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+; (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+; ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+    .setcpu   "6502"
+
+    .export _i2cClear
+    .export _i2cStart
+    .export _i2cStop
+    .export _i2cAck
+    .export _i2cNak
+    .export _i2cWrite
+    .export _i2cRead
+
+;----------------------------------------------------------------------
+
+    PRA  = VIA+1
+    DDRA = VIA+3
+    
+    SDA = (1 << 0)
+    SCL = (1 << 1)
+
+    SDAN = ~(SDA)
+    SCLN = ~(SCL)
+
+    .segment "ONCE"
+
+    FROM = bios_from
+    INTO = bios_into
+    PAGE = bios_f
+    BYTE = bios_w
 ;
 ;---------------------------------------------------------------------
-; 05/10/2023: adapted from ://www.ele.uva.es/~jesus/6502copy/nrom2/i2c.s
+;
+;   uses FROM as reference for address origin
+;   uses INTO as reference for address destin
+;   uses PAGE as eeprom page size
+;   user BYTE as byte 
+;
+;----------------------------------------------------------------------
+;   I2C sequences for eeproms:
+;
+;   for write:
+;
+;   header: Start, Control|W, Ack, Address MSB, Ack, Address LSB, Ack, 
+;   block:  Byte, (Ack), Byte, (Ack), ..., Byte, (Ack), Stop
+;
+;   for read:
+;
+;   header: Start, Control|W, Ack, Address MSB, Ack, Address LSB, Ack, 
+;   ready:  Start, Control|R, Ack, 
+;   block:  (Byte) Ack, (Byte) Ack, ..., (Byte) Nak, Stop
+;
+;   Control is byte with
+;   a frame of 7 bits, 000 to 111 device
+;   a low bit read/write 0 to write, 1 to read
+;
+;   Byte is sent, (Byte) is received
+;   after each Ack device responds with Ack
+;   do not use more than a device page in Block
 
-; ------------------------------------------------------------------------
-; send a Start
-	.export	_i2c_start
-_i2c_start:	
-	lda	DDRA		
-	ora	#(1<<SDA)	; SDA = L
-	sta	DDRA	
-	ora	#(1<<SCL)	; SCL = L
-	sta	DDRA
-	rts
-	
-; ------------------------------------------------------------------------
-; send a Stop
-	.export	_i2c_stop
-_i2c_stop:	
-	lda	DDRA		
-	ora	#(1<<SDA)	; SDA = L
-	sta	DDRA
-	and	#~(1<<SCL)	; SCL = H
-	sta	DDRA	
-	and	#~(1<<SDA)	; SDA = H
-	sta	DDRA
-	rts
+;---------------------------------------------------------------------
+; need adjust steps
+_rem2ram: 
+    ldy #$0
+@loop:
+    jsr _i2c_getc
+    sta (INTO),y
+    iny
+    cpy PAGE
+    bne loop
+    rts
 
-;------------------------------------------------------------------------
-; write A through the I2C bus, 
-	.export	_i2c_putc
-_i2c_putc:
-	ldx	#8
-@ob1:	
-	asl	a
-	pha
-	lda	DDRA
-	bcc	@ob2		; if Cy = 1 => SDA = 1, else SDA = 0
-	and	#~(1<<SDA)
-	bcs	@ob3		; uncondicional (Cy is 1)
-@ob2:	
-	ora	#(1<<SDA)	
-@ob3:	
-	sta	DDRA
-	and	#~(1<<SCL)	; SCL = H
-	sta	DDRA
-	nop
-	ora	#(1<<SCL)	; SCL = L
-	sta	DDRA
-	pla
-	dex
-	bne	@ob1
-	rts
+;---------------------------------------------------------------------
+; need adjust steps
+_ram2rem:    
+    ldy #$0
+@loop:
+    lda (FROM),y
+    jsr _i2c_putc
+    iny
+    cpy PAGE
+    bne loop
+    rts
 
-;------------------------------------------------------------------------
-; read A from the I2C bus,
-; tmp2: modiffied
-	.export	_i2c_getc
+;---------------------------------------------------------------------
+; move bytes
+; 
+_nextrem:
+    
+    lda PAGE
+    adc INTO+0
+    sta INTO+0
+    bcc @next
+    inc INTO+1
+@next:
+    ldx FROM+1
+    cpx INTO+1
+    bcs @cast
+    ldx FROM+0
+    cpx INTO+0
+    bcs @cast
+@cast:
+    
+@ends:
+    rts
+
+;----------------------------------------------------------------------
+;   a = 0 write, a = 1 read
+_i2csetDevice:
+    ; select device and mask for write
+    and #$01
+    beq @tord
+@towr:
+    lda #00
+@tord:    
+    ora DEV_I2C
+    jsr _i2cWrite
+    rts
+
+_i2csetAddress:
+    lda FROM+1
+    jsr _i2cWrite
+    lda FROM+0
+    jsr _i2cWrite
+    rts
+
+;----------------------------------------------------------------------
+; write any byte
+_i2c_putc:    
+    sta BYTE
+    ldx #$08
+@loop:
+    asl BYTE
+    bcc @zero
+@one:    
+    lda #$01
+    bcc @send
+@zero:
+    lda #$00
+@send:
+    jsr send_bit
+    dex
+    bne @loop
+@ack:  
+    jsr recv_bit     
+    ; ack in accu 0 = success
+    cmp #$00
+    beq @end
+@nak:
+    ; panic !!!
+@end:
+    rts      
+
+;----------------------------------------------------------------------
+; read any byte
 _i2c_getc:
-	ldx	#8
-@ib1:	
-	lda	DDRA
-	and	#~(1<<SCL)	; SCL = H
-	sta	DDRA
-	asl	tmp2
-	lda	#(1<<SDA)
-	bit	IRA
-	beq	@ib2
-	inc	tmp2
-@ib2:	
-	lda	DDRA
-	ora	#(1<<SCL)	; SCL = L
-	sta	DDRA
-	dex
-	bne	@ib1
-	lda	tmp2
-	rts
+    ldx #$08
+@loop: 
+    jsr _rec_bit
+    ror 
+    rol PAGE
+    dex
+    bne @loop
+@end:     
+    jsr _i2c_ack
+    rts
 
-;------------------------------------------------------------------------
-; Check the ACK bit
-; returns Cy=1 if NACK
-	.export	tstack
-tstack:	
-	lda	DDRA
-	and	#~(1<<SDA)	; SDA = H
-	sta	DDRA
-	and	#~(1<<SCL)	; SCL = H
-	sta	DDRA
-	clc
-	lda	#(1<<SDA)
-	bit	IRA		; Check ACK
-	beq	@tsa1
-	sec
-@tsa1:	
-	lda	DDRA
-	ora	#(1<<SCL)	; SCL = L
-	sta	DDRA
-	rts
+;----------------------------------------------------------------------
+; clear all pending
+_i2cClear:
+    jsr _i2c_stop 
+    jsr _i2c_start 
+    jsr sda_high
+    ldx #$09
+@loop: 
+    jsr scl_high
+    jsr scl_down
+    dex
+    bne @loop
+    jsr _i2c_start 
+    jsr _i2c_stop 
+    rts
 
-;------------------------------------------------------------------------
-; generates an ACK or NACK bit, always returns with Z=0
-	.export	genack, gennack
-_i2c_genack: 
-	lda	DDRA
-	ora	#(1<<SDA)	; SDA = L
-	bne	@gak1		
-_i2c_gennack:
-	lda	DDRA
-	and	#~(1<<SDA)	; SDA = H
-@gak1:	
-	sta	DDRA
-	and	#~(1<<SCL)	; SCL = H
-	sta	DDRA
-	nop
-	ora	#(1<<SCL)	; SCL = L
-	sta	DDRA
-	rts
-	
-; ------------------------------------------------------------------------
-; I2C EEPROM write routine
-; ptr1:	pointer to data 
-; tmp1: data length
-; tmp3:	EEPROM byte address 
-; X: EEPROM I2C address (left aligned i.e. $A0) 
-; returns CY=1 if NACK, CY=0 if OK. tmp1, X e Y modiffied
-	.export	_i2c_puts
-_i2c_puts:	
-	jsr	start
-	txa
-	and	#$FE		; ensure write
-	jsr	_i2c_putc
-	jsr	tstack
-	bcs	i2sn2		; NACK -> abort
-	lda	tmp3
-	jsr	_i2c_putc
-	jsr	tstack
-	bcs	i2sn2		; NACK -> abort
-	ldy	#0
-	lda	tmp1		; length=0 -> end
-	beq	i2sn2
-@i2sn1:	
-	lda	(ptr1),y
-	iny
-	jsr	_i2c_putc
-	jsr	tstack
-	bcs	i2sn2
-	dec	tmp1
-	bne	@i2sn1
-i2sn3:	
-	clc
-i2sn2:	
-	jsr	stop
-i2mf2:	
-	rts
+;----------------------------------------------------------------------
+; send a Ack
+_i2c_ack:    
+    lda #$00
+    jsr _send_bit
+    rts
 
-; ------------------------------------------------------------------------
-; I2C read routine
-; ptr1:	pointer to data
-; tmp1: data length
-; X: I2C address (left aligned)
-; returns CY=1 if NACK, CY=0 if OK. tmp1, X e Y modiffied
+;----------------------------------------------------------------------
+; send a Nak
+_i2c_nak:    
+    lda #$01
+    jsr _send_bit
+    rts
 
-	.export	_i2c_gets
-_i2c_gets:	
-	jsr	start
-	txa
-	ora	#1		; ensure read
-	jsr	_i2c_putc
-	jsr	tstack
-	bcs	i2sn2		; NACK -> abort
-	ldy	#0
-@i2r1:	
-	lda	DDRA
-	and	#~(1<<SDA)	; SDA = H
-	sta	DDRA
-	jsr	_i2c_getc		; data read
-	sta	(ptr1),y
-	iny
-	dec	tmp1
-	beq	@i2r2
-	jsr	genack		; not last byte yet -> send ACK
-	jmp	@i2r1
-@i2r2:	
-	jsr	gennack		; last byte -> send NACK
-	bne	i2sn3		; unconditional jump
+;----------------------------------------------------------------------
+; send a bit
+_send_bit:    
+    cmp #$01     ;bit in accu
+    beq @send_one
+@send_zero:    
+    jsr sda_down
+    jmp @clock_out
+@send_one:    
+    jsr sda_high
+@clock_out:    
+    jsr scl_high
+    jmp _i2c_ends
 
-; ------------------------------------------------------------------------
-; ------------------------------------------------------------------------
-; bootI2C: reads the EEPROM content to the address specified in the header
-; if the appropiate mark $B0,$CA is present. The loaded code is executed
-; if the execution address his higher or equal than $300
-; ------------------------------------------------------------------------
-; ------------------------------------------------------------------------
+;----------------------------------------------------------------------
+; receive a bit
+_recv_bit:    
+    jsr _i2c_wait
+    lda PRA
+    and #SDA
+    bne @is_one
+@is_zero:
+    lda #$00
+    jmp _i2c_ends
+@is_one:    
+    lda #$01
+    jmp _i2c_ends
 
-	.export	bootI2C
-bootI2C:
-	lda	#<fatbuf	; set a temporary destination pointer
-	sta	ptr1
-	lda	#>fatbuf
-	sta	ptr1+1
-	lda	#0
-	sta	tmp1
-	sta	tmp3		; Reset the EEPROM counter
-	ldx	#$A0
-	jsr	_i2c_puts
-	bcs	i2mf2
-	lda	#(14+128+64)	; 14th pos. on LCD
-	jsr	LCD_cmd
-	lda	#'i'		; 'i' means I2C EEPROM present
-	jsr	LCD_data
-	ldx	#(msgI2C-msgs)	; notify also on the UART
-	jsr	uputs
-	lda	#6		; reading just the 6-byte header
-	sta	tmp1
-	ldx	#$A0
-	jsr	_i2c_gets
-	bcs	i2mf
-	lda	#$B0
-	cmp	fatbuf
-	bne	i2mf
-	lda	#$CA
-	cmp	fatbuf+1
-	bne	i2mf
-	lda	#(14+128+64)	; 14th pos. on LCD
-	jsr	LCD_cmd
-	lda	#'I'		; 'I' means valid mark
-	jsr	LCD_data
-	ldx	#(msgldx-msgs)	; notify also on the UART
-	jsr	uputs
-	lda	fatbuf+2	; save header pointers
-	sta	ptr1
-	lda	fatbuf+3
-	sta	ptr1+1
-	lda	fatbuf+4
-	sta	ptr2
-	lda	fatbuf+5
-	sta	ptr2+1	
-	
-i3cmem:	
-	lda	#0		; Reset the EEPROM address again
-	sta	tmp1
-	sta	tmp3
-	ldx	#$A0
-	stx	tmp4		; I2C address (increments every 256 bytes)
-	jsr	_i2c_puts
-	bcs	i2mf
-	lda	#8
-	sta	tmp3		; page counter (8 pages * 256 bytes = 2kb)
-i2m1:	
-	ldx	tmp4
-	jsr	_i2c_gets		; 256 byte read
-	bcs	i2mf
-	inc	ptr1+1
-	inc	tmp4
-	inc	tmp4
-	dec	tmp3
-	bne	i2m1
-	lda	ptr2+1		; execute if address >= $300
-	cmp	#3
-	bcc	i2mf
-	ldx	#(msgexe-msgs)	; notify execution on UART
-	jsr	uputs
-	jmp	(ptr2)
-i2mf:	
-	rts		
+;----------------------------------------------------------------------
+;   marks
+;   beware: order matters
+
+;----------------------------------------------------------------------
+; ends a send or receive bit
+_i2c_ends:
+    jsr scl_down
+    jsr sda_down
+    rts      
+
+;----------------------------------------------------------------------
+; wait to receive bit
+_i2c_wait:
+    jsr sda_high
+    jsr scl_high
+    rts
+
+;----------------------------------------------------------------------
+; mark a Start
+_i2c_start:    
+    jsr sda_down
+    jsr scl_down
+    rts
+
+;----------------------------------------------------------------------
+; mark a Stop
+_i2c_stop:    
+    jsr sda_down
+    jsr scl_high
+    jsr sda_high
+    rts     
+
+;----------------------------------------------------------------------
+;   bit-bang
+;----------------------------------------------------------------------
+sda_down:    
+    lda DDRA
+    ora #SDA    
+    sta DDRA
+    rts
+
+;----------------------------------------------------------------------
+sda_high:    
+    lda #SDAN
+    and DDRA
+    sta DDRA
+    rts     
+
+;----------------------------------------------------------------------
+scl_down:    
+    lda DDRA
+    ora #SCL    
+    sta DDRA
+    rts
+
+;----------------------------------------------------------------------
+scl_high:    
+    lda #SCLN
+    and DDRA
+    sta DDRA
+    rts
+
+;----------------------------------------------------------------------
 

@@ -104,6 +104,12 @@
 
     - do not make recursive routines.
 
+    - using RAM for random access memory, as static ram with read and write.
+
+    - using ROM for read only memory, as flash eeprom parallel. NO WRITE.
+    
+    - using REM for regular eeprom memory, as flash eeprom with I2C protocol.
+
 .ENDIF
 ;---------------------------------------------------------------------
 ;
@@ -359,7 +365,7 @@ _init:
     cld
 
     ; copy default page
-    copycat
+    jsr copycat
 
     ; setup via one
     jsr via_init 
@@ -447,71 +453,15 @@ copycat:
 ;   Magics
 ;---------------------------------------------------------------------
 copyeep:
-    lda #$00
-    sta bios_into+0
-    lda #$10
-    sta bios_into+1
-    lda #$00
+    lda #00
     sta bios_from+0
-    lda #$F0
+    lda #02
     sta bios_from+1
-    ldx #$80
-    sta bios_w
+    lda #00
+    sta bios_into+0
+    lda #10
+    sta bios_into+1
     jsr _rem2ram
-    rts
-
-;---------------------------------------------------------------------
-; need adjust steps
-_rem2ram: 
-@init:
-    ldy #$00
-@loop:
-    _i2c_getc
-    sta (bios_into),y
-    iny
-    cpy bios_w
-    bne loop
-    ; 
-    lda bios_w
-    adc bios_into+0
-    sta bios_into+0
-    bcc @next
-    inc bios_into+1
-@next:
-    ldx bios_from+0
-    cpx bios_into+0
-    bne @init
-    ldx bios_from+1
-    cpx bios_into+1
-    bne @init
-@ends:
-    rts
-
-;---------------------------------------------------------------------
-; need adjust steps
-_ram2rem:    
-@cast:
-    ldy #$00
-@loop:
-    lda (bios_into),y
-    _i2c_putc
-    iny
-    cpy bios_w
-    bne loop
-    ; 
-    lda bios_w
-    adc bios_into+0
-    sta bios_into+0
-    bcc @next
-    inc bios_into+1
-@next:
-    ldx bios_from+0
-    cpx bios_into+0
-    bne @cast
-    ldx bios_from+1
-    cpx bios_into+1
-    bne @cast
-@ends:
     rts
 
 ;---------------------------------------------------------------------
