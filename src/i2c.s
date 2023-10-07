@@ -25,20 +25,26 @@
 
 ;----------------------------------------------------------------------
 
-    PRA  = VIA+1
-    DDRA = VIA+3
-    
-    SDA = (1 << 0)
-    SCL = (1 << 1)
+    PRA  = VIA_PA
+    DDRA = VIA_DDRA
 
-    SDAN = ~(SDA)
-    SCLN = ~(SCL)
+    ; SDA = (1 << 1)
+    ; SCL = (1 << 0)
 
-    TOREM = bios_from
-    TORAM = bios_into
-    PAGE = bios_f
-    BYTE = bios_g
-    DEVP = bios_h
+;    SDAN = ~(SDA)
+;    SCLN = ~(SCL)
+
+    SDAN = $FF - (SDA)
+    SCLN = $FF - (SCL)
+
+    ; must be at zero page
+    REM_PTR = bios_tmp1
+    RAM_PTR = bios_tmp2
+    LEN_PTR = bios_tmp3
+    DEVP = bios_tmp4 + 0
+    SENS = bios_tmp4 + 1
+    PAGE = bios_tmp5 + 0
+    BYTE = bios_tmp5 + 1
 ;
 ;---------------------------------------------------------------------
 ;
@@ -70,108 +76,170 @@
 ;   do not use more than a device page in Block
 ;
 ;----------------------------------------------------------------------
-	
-_test_length:
-	; set page size
-	lda #$80	; page size of at24LC512 eeprom used in 6502toy
-	sta PAGE
-	lda LEN+1
-	bne page2
-	lda LEN+0
-	cmp PAGE
-	bcs page2
-	sta PAGE
-	; set address for REM
-page2:
-	; set address for RAM
-	; copy a page
-	; prem += page
-	; pram += page
-	; leng -= page
-	; if len <= 0 ends
-	; 
-	
+    
+_ram2ram:
+	lda #$02
+	bne _moves
+
+_rem2ram:
+	lda #$01
+	bne _moves
+
+_ram2rem:
+	lda #$00 
+	beq _moves
+
+_moves:
+@p0:
+    sta SENS
+    ; set page size
+    lda #$80    ; page size of at24LC512 eeprom used in 6502toy
+    sta PAGE
+    lda LEN_PTR+1
+    bne @p1
+    lda LEN_PTR+0
+    cmp PAGE
+    bcs @p1
+    sta PAGE
+@p1:
+    ; copy a page
+    lda SENS
+    cmp #$01    ; rem2ram
+    beq @toram
+    cmp #$00    ; ram2rem
+    beq @torem
+@panic:
+    sec
+    rts    
+@inram:
+	jsr _ram2ram
+    clc
+    bcc @p2
+@toram:
+    jsr _i2c_toram
+    clc
+    bcc @p2
+@torem:
+    jsr _i2c_torem
+    clc
+    bcc @p2
+@p2:
+    ; prem += page
+    clc
+    lda REM_PTR+0
+    adc PAGE
+    sta REM_PTR+0
+    bcc @p3
+    inc REM_PTR+1
+@p3:
+    ; pram += page
+    clc
+    lda RAM_PTR+0
+    adc PAGE
+    sta RAM_PTR+0
+    bcc @p4
+    inc RAM_PTR+1
+@p4:
+    ; leng -= page
+    clc
+    lda LEN_PTR+0
+    sbc PAGE
+    sta LEN_PTR+0
+    bcc @p5
+    dec LEN_PTR+1
+@p5:
+    ; if len == 0 ends
+    clc
+    lda #$00
+    cmp LEN_PTR+1
+    bne @p7
+    cmp LEN_PTR+0
+    bne @p7
+@p6:
+    ; ends
+    rts
+    
+@p7:
+    ; loop
+    jmp @p0
+    
 ;----------------------------------------------------------------------
-_i2c_rem2ram:
-	jsr _i2c_start
-	lda #$00 	; set write	
-	jsr _i2c_setDevice
-	jsr _i2c_setAddress
-	jsr _i2c_start
-	lda #$01 	; set read
-	jsr _i2c_setDevice:
-	; read a page
-	jsr _i2c_toram
-	jsr _i2c_stop
+_i2c_inram:
+    ; read a page
+    ldy #$0
+@loop:
+    lda (REM_PTR),y
+    sta (RAM_PTR),y
+    iny
+    cpy PAGE
+    bcc @loop
 	rts
+
+;----------------------------------------------------------------------
+_i2c_toram:
 	
-;---------------------------------------------------------------------
-; need adjust steps
-_i2c_toram: 
+    jsr _i2c_start
+    lda #$00     ; set write    
+    jsr _i2c_setDevice
+    jsr _i2c_setAddress
+
+    jsr _i2c_start
+    lda #$01     ; set read
+    jsr _i2c_setDevice
+
+    ; read a page
     ldy #$0
 @loop:
     jsr _i2c_getc
-    sta (TORAM),y
+    sta (RAM_PTR),y
     iny
     cpy PAGE
-    bne loop
+    bcs @last
+    jsr _i2c_ack
+    clc
+    bcc @loop
+@last:
+    jsr _i2c_nak
+    jsr _i2c_stop
     rts
-
+    
 ;---------------------------------------------------------------------
 ; need adjust steps
 _i2c_torem:    
+
+    jsr _i2c_start
+    lda #$00     ; set write    
+    jsr _i2c_setDevice
+    jsr _i2c_setAddress
+
+    ; write a page
     ldy #$0
 @loop:
-    lda (TOREM),y
+    lda (RAM_PTR),y
     jsr _i2c_putc
+	bne @loop	; wait until ready but could hang 
     iny
     cpy PAGE
-    bne loop
-    rts
-
-;---------------------------------------------------------------------
-; move bytes
-; 
-_nextrem:
-    
-    lda PAGE
-    adc TORAM+0
-    sta TORAM+0
-    bcc @next
-    inc TORAM+1
-@next:
-    ldx TOREM+1
-    cpx TORAM+1
-    bne @cast
-    ldx TOREM+0
-    cpx TORAM+0
-    bne @cast
-
-@ends:
-
-@cast:
-    
+    bcc @loop
+@last:
+    jsr _i2c_stop
     rts
 
 ;----------------------------------------------------------------------
 ;   a = 0 write, a = 1 read
 _i2c_setDevice:
-    ; select device and mask for write
-    and #$01
-    beq @tord
-@towr:
-    lda #00
-@tord:    
-    ora #$A0 ; all devices starts
-    ora (DEV_I2C<<1)
+    ror
+    lda DEVP
+    rol
+    ora #$A0 ; all devices, Microchip mask is 1010|A2|A1|A0 
     jsr _i2c_putc
     rts
 
 ;----------------------------------------------------------------------
 _i2c_setAddress:
-    lda TOREM+1
+    lda REM_PTR+1
     jsr _i2c_putc
-    lda TOREM+0
+    lda REM_PTR+0
     jsr _i2c_putc
     rts
 
@@ -191,13 +259,9 @@ _i2c_putc:
 @sent:
     dex
     bne @loop
-@ack:  
-    jsr recv_bit     
+@qack:  
+    jsr _recv_bit     
     ; accu 0 = Ack, 1 = Nak
-    cmp #$00
-    beq @end
-@nak:
-    ; panic !!!
 @end:
     rts      
 
@@ -237,7 +301,7 @@ _recv_bit:
 _i2c_clear:
     jsr _i2c_stop 
     jsr _i2c_start 
-    jsr sda_low
+    jsr sda_down
     ldx #$09
 @loop: 
     jsr scl_high
@@ -262,7 +326,7 @@ _i2c_start:
     rts
 
 ;----------------------------------------------------------------------
-; mark a Stop,	take and give, by order
+; mark a Stop,    take and give, by order
 _i2c_stop:    
     jsr sda_down
     jsr scl_down
@@ -300,7 +364,7 @@ _i2c_rst:
     jsr sda_down
     jsr scl_down
     rts
-	
+    
 ;----------------------------------------------------------------------
 ;   bit-bang, changes Acc, N, Z
 ;----------------------------------------------------------------------

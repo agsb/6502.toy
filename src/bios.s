@@ -225,6 +225,23 @@
     TIA_PAH    =  TIA+15   ; Its port A address no handshake
 
 ;---------------------------------------------------------------------
+; VIA port A
+
+; for USART
+	USRX = (1 << 7)    
+	USTX = (1 << 6)    
+
+; for SPI
+	MCS0 = (1 << 5)    
+	MOSI = (1 << 4)
+	MISO = (1 << 3)
+	MSCL = (1 << 2)
+
+; for I2C, with 10k pull-up drains 1 mA
+    SDA  = (1 << 1)
+    SCL  = (1 << 0)
+
+;---------------------------------------------------------------------
 ; at page 
 
     GHOSTS = $0300
@@ -255,34 +272,35 @@ bios_s:  .byte $0
 bios_x:  .byte $0
 bios_y:  .byte $0
 bios_p:  .byte $0
-bios_q:  .byte $0
+bios_z:  .byte $0
+
+; acia buffer ptr
+bios_rd: .byte $0
+bios_wr: .byte $0
 
 ; generic
-bios_from:  .word $0
-bios_into:  .word $0
-bios_work:  .word $0
-bios_last:  .word $0
 
 bios_f:  .byte $0
 bios_g:  .byte $0
 bios_h:  .byte $0
 bios_t:  .byte $0
 
+* = $00F0
+
+bios_void: .word $0
+; bios_tmp0 = bios_void + $0
+bios_tmp1 = bios_void + $2
+bios_tmp2 = bios_void + $4
+bios_tmp3 = bios_void + $6
+bios_tmp4 = bios_void + $8
+bios_tmp5 = bios_void + $a
+bios_tmp6 = bios_void + $c
+bios_tmp7 = bios_void + $e
+
 ;----------------------------------------------------------------------
 ; aliases
-rd_ptr = bios_p
-wr_ptr = bios_q
-
-
-; $00F0
-
-;bios_void:  .word $0
-;bios_what:  .word $0
-;bios_when:  .word $0
-;bios_then:  .word $0
-;bios_last:  .word $0
-;bios_hash:  .word $0
-
+rd_ptr = bios_rd
+wr_ptr = bios_wr
 
 .assert * > $FF, warning, "~ bios page zero over stack limit"
 
@@ -355,9 +373,9 @@ _jump_rst:
 
 ; void nmi,irq at boot
 
-nmi_init:
+_nmi_init:
 
-bios_init:
+_irq_init:
 
     rti
 
@@ -413,8 +431,8 @@ _init:
     
     ; clear break
     lda #0
-    sta bios_last+0
-    sta bios_last+1
+    sta bios_void+0
+    sta bios_void+1
 
     ; alive
     jsr beep
@@ -432,7 +450,7 @@ _main:
 
 ;---------------------------------------------------------------------
 
-; .include "i2c.s"
+.include "i2c.s"
 
 ;---------------------------------------------------------------------
 ; beep
@@ -461,17 +479,31 @@ copycat:
 ;   $EF00/$80 = $01DE
 ;   478 I2C pages of 128 bytes
 ;   Magics
+;   rem_ptr = bios_tmp1
+;   ram_ptr = bios_tmp2
+;   len_ptr = bios_tmp3
+;   device  = bios_tmp4+0
+;   sense   = bios_tmp4+1
+;   work    = bios_tmp5
+;
 ;---------------------------------------------------------------------
 copyeep:
-    lda #00
-    sta bios_from+0
-    lda #02
-    sta bios_from+1
-    lda #00
-    sta bios_into+0
-    lda #10
-    sta bios_into+1
-  ;  jsr _rem2ram
+    ; use device 0 and sense read
+    ; copy $E000 bytes from $1000 REM to $1000 RAM
+    lda #$00
+    sta bios_tmp1+0
+    sta bios_tmp2+0
+    sta bios_tmp3+0
+    lda #$10
+    sta bios_tmp1+1
+    sta bios_tmp2+1
+    lda #$E0
+    sta bios_tmp3+1
+    lda #$00 
+    sta bios_tmp4+0
+    lda #$01
+    sta bios_tmp4+1
+    jsr _rem2ram
     rts
 
 ;---------------------------------------------------------------------
@@ -661,8 +693,6 @@ putc :
 ; mess with CR LF (Windows), LF (Unix) and CR (Macintosh) line break types.
 ;---------------------------------------------------------------------
 gets:
-    sta bios_work+0
-    stx bios_work+1
     ldy #0
 @loop:
     jsr getc 
