@@ -24,35 +24,31 @@
 
 
 ;----------------------------------------------------------------------
+;   alias
 
     PRA  = VIA_PA
     DDRA = VIA_DDRA
-
-    ; SDA = (1 << 1)
-    ; SCL = (1 << 0)
-
-;    SDAN = ~(SDA)
-;    SCLN = ~(SCL)
 
     SDAN = $FF - (SDA)
     SCLN = $FF - (SCL)
 
     ; must be at zero page
+
+    ; start address in REM
     REM_PTR = bios_tmp1
+    ; start address in RAM
     RAM_PTR = bios_tmp2
+    ; length to copy
     LEN_PTR = bios_tmp3
+   ; which device 
     DEVP = bios_tmp4 + 0
+   ; read or write
     SENS = bios_tmp4 + 1
+   ; page size
     PAGE = bios_tmp5 + 0
+   ; hold for shift
     BYTE = bios_tmp5 + 1
-;
-;---------------------------------------------------------------------
-;
-;   uses TOREM as reference for address origin
-;   uses TORAM as reference for address destin
-;   uses PAGE as eeprom page size
-;   user BYTE as byte 
-;
+
 ;----------------------------------------------------------------------
 ;   I2C sequences for eeproms:
 ;
@@ -78,16 +74,16 @@
 ;----------------------------------------------------------------------
     
 _ram2ram:
-	lda #$02
-	bne _moves
+    lda #$02
+    bne _moves
 
 _rem2ram:
-	lda #$01
-	bne _moves
+    lda #$01
+    bne _moves
 
 _ram2rem:
-	lda #$00 
-	beq _moves
+    lda #$00 
+    beq _moves
 
 _moves:
 @p0:
@@ -112,7 +108,7 @@ _moves:
     sec
     rts    
 @inram:
-	jsr _ram2ram
+    jsr _ram2ram
     clc
     bcc @p2
 @toram:
@@ -173,11 +169,11 @@ _i2c_inram:
     iny
     cpy PAGE
     bcc @loop
-	rts
+    rts
 
 ;----------------------------------------------------------------------
 _i2c_toram:
-	
+    
     jsr _i2c_start
     lda #$00     ; set write    
     jsr _i2c_setDevice
@@ -217,7 +213,7 @@ _i2c_torem:
 @loop:
     lda (RAM_PTR),y
     jsr _i2c_putc
-	bne @loop	; wait until ready but could hang 
+    bne @loop    ; wait until ready but could hang 
     iny
     cpy PAGE
     bcc @loop
@@ -226,12 +222,13 @@ _i2c_torem:
     rts
 
 ;----------------------------------------------------------------------
+;   Microchip mask is 1010|A2|A1|A0|R/W, A2,A1,A0 hardwired
 ;   a = 0 write, a = 1 read
 _i2c_setDevice:
     ror
     lda DEVP
     rol
-    ora #$A0 ; all devices, Microchip mask is 1010|A2|A1|A0 
+    ora #$A0 ; all devices
     jsr _i2c_putc
     rts
 

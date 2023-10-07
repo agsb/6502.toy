@@ -302,6 +302,9 @@ bios_tmp7 = bios_void + $e
 rd_ptr = bios_rd
 wr_ptr = bios_wr
 
+bios_from = bios_tmp1
+bios_into = bios_tmp2
+
 .assert * > $FF, warning, "~ bios page zero over stack limit"
 
 ;----------------------------------------------------------------------
@@ -697,7 +700,7 @@ gets:
 @loop:
     jsr getc 
     bcs @loop   
-    sta (bios_work), y
+    sta (bios_into), y
 ; minimal 
 @cr:
     cmp CR_ ; ^M
@@ -734,7 +737,7 @@ gets:
 @ends:
 ; null
     lda #0
-    sta (bios_work), y
+    sta (bios_into), y
     tya
     clc
     rts
@@ -743,11 +746,9 @@ gets:
 ; max 255 bytes
 ;---------------------------------------------------------------------
 puts:
-    sta bios_work+0
-    stx bios_work+1
     ldy #0
 @loop:
-    lda (bios_work), y
+    lda (bios_from), y
     beq @ends
 @trie:
     jsr putc 
