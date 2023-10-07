@@ -246,35 +246,45 @@
 ;
 * = $00E0
 
-; copycats
-bios_a:  .byte $0
-bios_x:  .byte $0
-bios_y:  .byte $0
-bios_s:  .byte $0
-bios_p:  .byte $0
-bios_w:  .byte $0
-
 ; clock
 bios_tick:  .word $0, $0
+
+; copycats
+bios_a:  .byte $0
+bios_s:  .byte $0
+bios_x:  .byte $0
+bios_y:  .byte $0
+bios_p:  .byte $0
+bios_q:  .byte $0
 
 ; generic
 bios_from:  .word $0
 bios_into:  .word $0
 bios_work:  .word $0
+bios_last:  .word $0
+
+bios_f:  .byte $0
+bios_g:  .byte $0
+bios_h:  .byte $0
+bios_t:  .byte $0
+
+;----------------------------------------------------------------------
+; aliases
+rd_ptr = bios_p
+wr_ptr = bios_q
+
 
 ; $00F0
 
-bios_void:  .word $0
-bios_what:  .word $0
-bios_when:  .word $0
-bios_then:  .word $0
-bios_last:  .word $0
-bios_hash:  .word $0
+;bios_void:  .word $0
+;bios_what:  .word $0
+;bios_when:  .word $0
+;bios_then:  .word $0
+;bios_last:  .word $0
+;bios_hash:  .word $0
 
-rd_ptr: .byte $0
-wr_ptr: .byte $0
 
-.assert * > $00FF, warning, "~ bios page zero over stack limit"
+.assert * > $FF, warning, "~ bios page zero over stack limit"
 
 ;----------------------------------------------------------------------
 ; at page
@@ -287,8 +297,8 @@ wr_ptr: .byte $0
 
 ; pointers of routines
 .word delay       ; 
-.word gets     ; 
-.word puts     ; 
+.word gets        ; 
+.word puts        ; 
 .word getc        ; 
 .word putc        ; 
 .word clock_stop  ; 
@@ -422,7 +432,7 @@ _main:
 
 ;---------------------------------------------------------------------
 
-.include "i2c.s"
+; .include "i2c.s"
 
 ;---------------------------------------------------------------------
 ; beep
@@ -461,7 +471,7 @@ copyeep:
     sta bios_into+0
     lda #10
     sta bios_into+1
-    jsr _rem2ram
+  ;  jsr _rem2ram
     rts
 
 ;---------------------------------------------------------------------

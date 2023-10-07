@@ -1,5 +1,3 @@
-; adapted from 
-; Copyright (c) 2015, Dieter Hauer
 ;
 ; Copyright (c) 2023, Alvaro Gomes Sobral Barcellos
 ; All rights reserved.
@@ -25,16 +23,6 @@
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-    .setcpu   "6502"
-
-    .export _i2cClear
-    .export _i2cStart
-    .export _i2cStop
-    .export _i2cAck
-    .export _i2cNak
-    .export _i2cWrite
-    .export _i2cRead
-
 ;----------------------------------------------------------------------
 
     PRA  = VIA+1
@@ -46,17 +34,16 @@
     SDAN = ~(SDA)
     SCLN = ~(SCL)
 
-    .segment "ONCE"
-
-    FROM = bios_from
-    INTO = bios_into
+    TOREM = bios_from
+    TORAM = bios_into
     PAGE = bios_f
-    BYTE = bios_w
+    BYTE = bios_g
+    DEVP = bios_h
 ;
 ;---------------------------------------------------------------------
 ;
-;   uses FROM as reference for address origin
-;   uses INTO as reference for address destin
+;   uses TOREM as reference for address origin
+;   uses TORAM as reference for address destin
 ;   uses PAGE as eeprom page size
 ;   user BYTE as byte 
 ;
@@ -78,17 +65,53 @@
 ;   a frame of 7 bits, 000 to 111 device
 ;   a low bit read/write 0 to write, 1 to read
 ;
-;   Byte is sent, (Byte) is received
-;   after each Ack device responds with Ack
+;   from master view, (any) is received
+;
 ;   do not use more than a device page in Block
-
+;
+;----------------------------------------------------------------------
+	
+_test_length:
+	; set page size
+	lda #$80	; page size of at24LC512 eeprom used in 6502toy
+	sta PAGE
+	lda LEN+1
+	bne page2
+	lda LEN+0
+	cmp PAGE
+	bcs page2
+	sta PAGE
+	; set address for REM
+page2:
+	; set address for RAM
+	; copy a page
+	; prem += page
+	; pram += page
+	; leng -= page
+	; if len <= 0 ends
+	; 
+	
+;----------------------------------------------------------------------
+_i2c_rem2ram:
+	jsr _i2c_start
+	lda #$00 	; set write	
+	jsr _i2c_setDevice
+	jsr _i2c_setAddress
+	jsr _i2c_start
+	lda #$01 	; set read
+	jsr _i2c_setDevice:
+	; read a page
+	jsr _i2c_toram
+	jsr _i2c_stop
+	rts
+	
 ;---------------------------------------------------------------------
 ; need adjust steps
-_rem2ram: 
+_i2c_toram: 
     ldy #$0
 @loop:
     jsr _i2c_getc
-    sta (INTO),y
+    sta (TORAM),y
     iny
     cpy PAGE
     bne loop
@@ -96,10 +119,10 @@ _rem2ram:
 
 ;---------------------------------------------------------------------
 ; need adjust steps
-_ram2rem:    
+_i2c_torem:    
     ldy #$0
 @loop:
-    lda (FROM),y
+    lda (TOREM),y
     jsr _i2c_putc
     iny
     cpy PAGE
@@ -112,40 +135,44 @@ _ram2rem:
 _nextrem:
     
     lda PAGE
-    adc INTO+0
-    sta INTO+0
+    adc TORAM+0
+    sta TORAM+0
     bcc @next
-    inc INTO+1
+    inc TORAM+1
 @next:
-    ldx FROM+1
-    cpx INTO+1
-    bcs @cast
-    ldx FROM+0
-    cpx INTO+0
-    bcs @cast
+    ldx TOREM+1
+    cpx TORAM+1
+    bne @cast
+    ldx TOREM+0
+    cpx TORAM+0
+    bne @cast
+
+@ends:
+
 @cast:
     
-@ends:
     rts
 
 ;----------------------------------------------------------------------
 ;   a = 0 write, a = 1 read
-_i2csetDevice:
+_i2c_setDevice:
     ; select device and mask for write
     and #$01
     beq @tord
 @towr:
     lda #00
 @tord:    
-    ora DEV_I2C
-    jsr _i2cWrite
+    ora #$A0 ; all devices starts
+    ora (DEV_I2C<<1)
+    jsr _i2c_putc
     rts
 
-_i2csetAddress:
-    lda FROM+1
-    jsr _i2cWrite
-    lda FROM+0
-    jsr _i2cWrite
+;----------------------------------------------------------------------
+_i2c_setAddress:
+    lda TOREM+1
+    jsr _i2c_putc
+    lda TOREM+0
+    jsr _i2c_putc
     rts
 
 ;----------------------------------------------------------------------
@@ -155,19 +182,18 @@ _i2c_putc:
     ldx #$08
 @loop:
     asl BYTE
-    bcc @zero
-@one:    
-    lda #$01
-    bcc @send
+    bcs @one
 @zero:
-    lda #$00
-@send:
-    jsr send_bit
+    jsr _i2c_zero
+    bcc @sent
+@one:    
+    jsr _i2c_one
+@sent:
     dex
     bne @loop
 @ack:  
     jsr recv_bit     
-    ; ack in accu 0 = success
+    ; accu 0 = Ack, 1 = Nak
     cmp #$00
     beq @end
 @nak:
@@ -180,7 +206,7 @@ _i2c_putc:
 _i2c_getc:
     ldx #$08
 @loop: 
-    jsr _rec_bit
+    jsr _recv_bit
     ror 
     rol PAGE
     dex
@@ -190,11 +216,28 @@ _i2c_getc:
     rts
 
 ;----------------------------------------------------------------------
+; receive a bit
+_recv_bit:    
+    jsr scl_high
+    ; nop ???
+    lda PRA
+    and #SDA
+    bne @is_one
+@is_zero:
+    lda #$00
+    bcc @ends
+@is_one:    
+    lda #$01
+@ends:
+    jsr scl_down
+    rts      
+
+;----------------------------------------------------------------------
 ; clear all pending
-_i2cClear:
+_i2c_clear:
     jsr _i2c_stop 
     jsr _i2c_start 
-    jsr sda_high
+    jsr sda_low
     ldx #$09
 @loop: 
     jsr scl_high
@@ -206,82 +249,60 @@ _i2cClear:
     rts
 
 ;----------------------------------------------------------------------
-; send a Ack
-_i2c_ack:    
-    lda #$00
-    jsr _send_bit
-    rts
-
-;----------------------------------------------------------------------
-; send a Nak
-_i2c_nak:    
-    lda #$01
-    jsr _send_bit
-    rts
-
-;----------------------------------------------------------------------
-; send a bit
-_send_bit:    
-    cmp #$01     ;bit in accu
-    beq @send_one
-@send_zero:    
-    jsr sda_down
-    jmp @clock_out
-@send_one:    
-    jsr sda_high
-@clock_out:    
-    jsr scl_high
-    jmp _i2c_ends
-
-;----------------------------------------------------------------------
-; receive a bit
-_recv_bit:    
-    jsr _i2c_wait
-    lda PRA
-    and #SDA
-    bne @is_one
-@is_zero:
-    lda #$00
-    jmp _i2c_ends
-@is_one:    
-    lda #$01
-    jmp _i2c_ends
-
-;----------------------------------------------------------------------
 ;   marks
 ;   beware: order matters
 
 ;----------------------------------------------------------------------
-; ends a send or receive bit
-_i2c_ends:
-    jsr scl_down
-    jsr sda_down
-    rts      
-
-;----------------------------------------------------------------------
-; wait to receive bit
-_i2c_wait:
+; mark a Start, wait and take, by order  
+_i2c_start:    
     jsr sda_high
     jsr scl_high
-    rts
-
-;----------------------------------------------------------------------
-; mark a Start
-_i2c_start:    
     jsr sda_down
     jsr scl_down
     rts
 
 ;----------------------------------------------------------------------
-; mark a Stop
+; mark a Stop,	take and give, by order
 _i2c_stop:    
     jsr sda_down
+    jsr scl_down
     jsr scl_high
     jsr sda_high
     rts     
 
 ;----------------------------------------------------------------------
-;   bit-bang
+; send a Ack
+_i2c_zero:
+_i2c_ack:    
+    jsr sda_down
+    jsr scl_high
+    jsr scl_down
+    rts
+
+;----------------------------------------------------------------------
+; send a Nak
+_i2c_one:
+_i2c_nak:    
+    jsr sda_high
+    jsr scl_high
+    jsr scl_down
+    rts
+
+;----------------------------------------------------------------------
+; send a Reset
+_i2c_rst:
+    jsr sda_down
+    jsr scl_down
+    jsr scl_high
+    jsr sda_high
+    jsr scl_down
+    jsr scl_high
+    jsr sda_down
+    jsr scl_down
+    rts
+	
+;----------------------------------------------------------------------
+;   bit-bang, changes Acc, N, Z
 ;----------------------------------------------------------------------
 sda_down:    
     lda DDRA
