@@ -1,6 +1,27 @@
-;--------------------------------------------------------
+
 ACIA_EXTRAS = 0
 .IF ACIA_EXTRAS
+
+;--------------------------------------------------------
+; ascii 
+
+    ESC_    =   27    ; ascii escape ^[
+ 
+    XON_    =   17    ; ascii DC1 ^Q
+    XOFF_   =   19    ; ascii DC3 ^S
+
+    ACK_    =    6    ; ascii ACK ^F 
+    NAK_    =   21    ; ascii NAK ^U also delete line.
+
+    CR_     =   13    ; ascci carriage return ^M
+    LF_     =   10    ; ascii line feed ^J
+    
+    BS_     =    8    ; ascii backspace ^H
+
+    BL_     =   32    ; ascii space
+    QT_     =   34    ; ascii double quotes \"
+
+;--------------------------------------------------------
 
 rd_ptr = bios_rd
 wr_ptr = bios_wr

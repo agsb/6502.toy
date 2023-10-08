@@ -27,6 +27,9 @@
 ;   LICENSE: http://creativecommons.org/licenses/by-nc-sa/4.0/
 ;
 ;--------------------------------------------------------
+;
+;	minimal bios for 6502toy
+;
 ;--------------------------------------------------------
 .IF 0
 
@@ -50,7 +53,7 @@
     
     $0300 to $03FF page tri,  list of devices and routines
    
-    $0400-$0FFF  3 kb reserved 
+    $0400-$0FFF  3 kb bios 
 
     $1000-$E7FF 56 kb user 
 
@@ -80,17 +83,15 @@
 
 ### ROM
     
-    $F800 to $FFFF  2k ROM ( minus 256, last page )
+    $F800 to $FFFF  2k ROM 
 
     At boot:
     
-    1. Copy the last page $FF00 to thirth page $0300. 
+    1. Copy the NMI/IRQ address to page $0300. 
 
-    2. Reserve the pages at $0400 to $0FFF. 
+    2. Copy I2C EEPROM to $0400 and jump ($400). 
 
-    3. Copy I2C EEPROM to $1000 and jump to $1000. 
-
-    4. The BIOS stay at $F800 to $FFFF.
+    4. Shadow BIOS stay at $F800 to $FFFF.
 
 ### Interrupts
 
@@ -146,28 +147,7 @@
 ;--------------------------------------------------------
 ; constants
 ;--------------------------------------------------------
-
-;--------------------------------------------------------
-; ascii 
-
-    ESC_    =   27    ; ascii escape ^[
- 
-    XON_    =   17    ; ascii DC1 ^Q
-    XOFF_   =   19    ; ascii DC3 ^S
-
-    ACK_    =    6    ; ascii ACK ^F 
-    NAK_    =   21    ; ascii NAK ^U also delete line.
-
-    CR_     =   13    ; ascci carriage return ^M
-    LF_     =   10    ; ascii line feed ^J
-    
-    BS_     =    8    ; ascii backspace ^H
-
-    BL_     =   32    ; ascii space
-    QT_     =   34    ; ascii double quotes \"
-
-;--------------------------------------------------------
-;   task or process states
+;   task states
 
     HALT    = 0
     IDLE    = 1
@@ -251,11 +231,7 @@
 ;--------------------------------------------------------
 ; alias at page 
 
-    GHOSTS = $0300
-    
-    buffer = $0400
-
-    SHADOWS = $FF00
+    buffer = $0200
 
     NMIVEC = $03FA
 
@@ -305,32 +281,8 @@ bios_tmp7 = bios_void + $e
 
 ;--------------------------------------------------------
 
-.assert (* > $FF) , warning , "~ bios page zero over stack limit"
-
-;--------------------------------------------------------
-; at page
-* = $FF00
-
-BIOS_VECTOR:
-; pointers of routines
-
-.word blink	  ;
-.word beep	  ;
-.word _rem2map     ; 
-.word _rem2ram     ; 
-.word _ram2rem     ; 
-.word _ram2ram     ; 
-.word hitc        ; 
-.word getc        ; 
-.word putc        ; 
-.word clock_stop  ; 
-.word clock_start ; 
-.word monitor     ; 
-
 .byte $DE,$AD,$C0,$DE
 
-;--------------------------------------------------------
-.assert * > $FFFA, warning, "~ bios page last over vector limit"
 ;--------------------------------------------------------
 ; at $FFFA
 .segment "VECTORS"
@@ -386,6 +338,21 @@ _init:
     ; no BCD math
     cld
 
+    ; enable interrupts
+    
+    lda #<_bios_nmi
+    sta NMIVEC+0
+    lda #>_bios_nmi
+    sta NMIVEC+1
+
+    lda #<_bios_irq
+    sta IRQVEC+0
+    lda #>_bios_irq
+    sta IRQVEC+1
+    
+    ; alive
+    jsr beep
+
     ; setup acia one
     jsr _acia_init
 
@@ -398,21 +365,6 @@ _init:
     ; setup clock
     jsr _clock_init
 
-    ; enable interrupts
-    
-    lda #<_bios_nmi
-    sta NMIVEC+0
-    lda #>_bios_nmi
-    sta NMIVEC+1
-
-    lda #<_bios_irq
-    sta IRQVEC+0
-    lda #>_bios_irq
-    sta IRQVEC+1
-
-    ; alive
-    jsr beep
-
     ; stack: pull is decr, push is incr
     ldx #$FF
     txs
@@ -423,6 +375,9 @@ _init:
     ; copy REM to RAM
     jsr _copyeep    
 
+    ; alive
+    jsr beep
+
     ; there we go....
     cli
 
@@ -430,8 +385,7 @@ _init:
 
 _main:
     ; insanity for safety
-    jmp $1000
-
+    jmp $400
 
 ;--------------------------------------------------------
 
@@ -440,16 +394,6 @@ _main:
 ;--------------------------------------------------------
 ; beep
 beep:
-    rts
-
-;--------------------------------------------------------
-; blink
-blink:
-    rts
-
-;--------------------------------------------------------
-; monitor
-monitor:
     rts
 
 ;--------------------------------------------------------
@@ -488,9 +432,7 @@ _copyeep:
 
 ;========================================================
 ; NMI, counts ticks
-;--------------------------------------------------------
 _bios_nmi:
-
 _bios_tick:
     cld
     bit VIA_T1CL
@@ -507,9 +449,7 @@ _bios_tick:
 ;======================================================================
 ; IRQ|BRK, handler
 ; easy minimal 
-;--------------------------------------------------------
 _bios_irq:
-
 _bios_init_easy:
     cld
     sei
@@ -602,7 +542,7 @@ _acia_init:
 ;   verify thru 6551, no waits
 ;
 hitc :  
-acia_rz:
+@acia_ht:
 ; verify
     lda CIA_STAT
     and #8

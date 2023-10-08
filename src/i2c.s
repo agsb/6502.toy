@@ -1,4 +1,5 @@
-;
+
+;----------------------------------------------------------------------
 ; Copyright (c) 2023, Alvaro Gomes Sobral Barcellos
 ; All rights reserved.
 ; 
@@ -21,7 +22,6 @@
 ; ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 
 ;----------------------------------------------------------------------
 ;   alias
@@ -73,7 +73,7 @@
 ;
 ;----------------------------------------------------------------------
     
-	
+    
 _ram2cpy:
     lda #$03
     bne _moves
@@ -175,6 +175,8 @@ _ram2ram:
 ;----------------------------------------------------------------------
 _i2c_toram:
     
+    jsr _i2c_rst
+
     jsr _i2c_start
     lda #$00     ; set write    
     jsr _i2c_setDevice
@@ -204,6 +206,8 @@ _i2c_toram:
 ; need adjust steps
 _i2c_torem:    
 
+    jsr _i2c_rst
+
     jsr _i2c_start
     lda #$00     ; set write    
     jsr _i2c_setDevice
@@ -227,30 +231,30 @@ _i2c_torem:
 ; return a list of address alive in buffer, zero at end
 _rem2map:
 _i2c_scan:
-	ldx #$01
+    ldx #$01
     ldy #$00
 @loop:
     jsr _i2c_start
-	txa
-	asl A
-	jsr _i2c_putc
-	cmp #$0
-	bcs @next
+    txa
+    asl A
+    jsr _i2c_putc
+    cmp #$0
+    bcs @next
 @ack:
-	; alive response
-	txa
-	sta buffer, Y
-	iny
+    ; alive response
+    txa
+    sta buffer, Y
+    iny
 @next:
-	jsr _i2c_stop
-	inx
-	cpx #$80
-	bcc @loop
+    jsr _i2c_stop
+    inx
+    cpx #$80
+    bcc @loop
 @ends:
-	lda #$00
-	sta buffer, Y
-	rts
-	
+    lda #$00
+    sta buffer, Y
+    rts
+    
 ;----------------------------------------------------------------------
 ;   Microchip mask is 1010|A2|A1|A0|R/W, A2,A1,A0 glue zero
 ;   a = 0 write, a = 1 read
@@ -287,7 +291,7 @@ _i2c_putc:
     bne @loop
 @qack:  
     jsr _recv_bit     
-    ; accu 0 = Ack, 1 = Nak
+    ; acc 0 = Ack, 1 = Nak
 @end:
     rts      
 
