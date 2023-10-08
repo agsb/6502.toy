@@ -1,4 +1,4 @@
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ; /*
 ;  *  DISCLAIMER"
 ;  *
@@ -26,7 +26,8 @@
 ;
 ;   LICENSE: http://creativecommons.org/licenses/by-nc-sa/4.0/
 ;
-;---------------------------------------------------------------------
+;--------------------------------------------------------
+;--------------------------------------------------------
 .IF 0
 
 # Easy BIOS or MOS for a 6502toy
@@ -43,15 +44,15 @@
 
     $0000 to $00FF page zero, hardware registers
     
-    $0100 to $01FF page one, hardware stack
+    $0100 to $01FF page one,  hardware stack
     
-    $0200 to $02FF page two, bios buffers
+    $0200 to $02FF page two,  bios buffers
     
-    $0300 to $03FF page tri, list of devices and routines
+    $0300 to $03FF page tri,  list of devices and routines
    
-    $0400-$0FFF reserved 
+    $0400-$0FFF  3 kb reserved 
 
-    $1000-$E7FF user 
+    $1000-$E7FF 56 kb user 
 
 ### DEVICES
 
@@ -77,20 +78,19 @@
     
     $F080 to $F7FF, free  
 
-
 ### ROM
     
-    $F800 to $FFFF  2k ROM
+    $F800 to $FFFF  2k ROM ( minus 256, last page )
 
     At boot:
     
-    1. Copy the $FF00 page to $0300 page. 
+    1. Copy the last page $FF00 to thirth page $0300. 
 
     2. Reserve the pages at $0400 to $0FFF. 
 
     3. Copy I2C EEPROM to $1000 and jump to $1000. 
 
-    4. The BIOS stay at $F080 to $FFFF.
+    4. The BIOS stay at $F800 to $FFFF.
 
 ### Interrupts
 
@@ -111,7 +111,7 @@
     - using REM for regular eeprom memory, as flash eeprom with I2C protocol.
 
 .ENDIF
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ;
 ;   enable some ca65
 ;
@@ -143,12 +143,12 @@
 
 .p02
 
-;---------------------------------------------------------------------
-;
-;   CONSTANTS
-;
-;---------------------------------------------------------------------
-; ASCII 
+;--------------------------------------------------------
+; constants
+;--------------------------------------------------------
+
+;--------------------------------------------------------
+; ascii 
 
     ESC_    =   27    ; ascii escape ^[
  
@@ -166,17 +166,20 @@
     BL_     =   32    ; ascii space
     QT_     =   34    ; ascii double quotes \"
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ;   task or process states
+
     HALT    = 0
     IDLE    = 1
     WAIT    = 2
     BUSY    = 3
 
-;---------------------------------------------------------------------
-; 
+;--------------------------------------------------------
+; devices
+ 
     DEVS = $F000
 
+;--------------------------------------------------------
 ; terminal usart
     CIA       =  DEVS+$10    ; The base address of the 6551 ACIA.
     CIA_DATA  =  CIA+0   ; Its data I/O register
@@ -186,6 +189,7 @@
     CIA_COMM  =  CIA+2   ; Its command  register
     CIA_CTRL  =  CIA+3   ; Its control  register
 
+;--------------------------------------------------------
 ; system 
     VIA        =  DEVS+$20 ; The base address of the 6522 VIA.
     VIA_PB     =  VIA+0    ; Its port B address
@@ -205,6 +209,7 @@
     VIA_IER    =  VIA+14   ; The interrupt enable register
     VIA_PAH    =  VIA+15   ; Its port A address no handshake
 
+;--------------------------------------------------------
 ; user 
     TIA        =  DEVS+$30 ; The base address of the 6522 VIA.
     TIA_PB     =  TIA+0    ; Its port B address
@@ -224,27 +229,29 @@
     TIA_IER    =  TIA+14   ; The interrupt enable register
     TIA_PAH    =  TIA+15   ; Its port A address no handshake
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ; VIA port A
 
 ; for USART
-	USRX = (1 << 7)    
-	USTX = (1 << 6)    
+    USRX = (1 << 7)    
+    USTX = (1 << 6)    
 
 ; for SPI
-	MCS0 = (1 << 5)    
-	MOSI = (1 << 4)
-	MISO = (1 << 3)
-	MSCL = (1 << 2)
+    MCS0 = (1 << 5)    
+    MOSI = (1 << 4)
+    MISO = (1 << 3)
+    MSCL = (1 << 2)
 
 ; for I2C, with 10k pull-up drains 1 mA
     SDA  = (1 << 1)
     SCL  = (1 << 0)
 
-;---------------------------------------------------------------------
-; at page 
+;--------------------------------------------------------
+; alias at page 
 
     GHOSTS = $0300
+    
+    buffer = $0400
 
     SHADOWS = $FF00
 
@@ -254,9 +261,7 @@
 
     IRQVEC = $03FE
 
-    buffer = $0200
-
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ;   at page zero
 ;   $E0 to $EF bios reserved 16 bytes
 ;   $F0 to $FF bios reserved 16 bytes
@@ -272,14 +277,13 @@ bios_s:  .byte $0
 bios_x:  .byte $0
 bios_y:  .byte $0
 bios_p:  .byte $0
-bios_z:  .byte $0
 
-; acia buffer ptr
-bios_rd: .byte $0
-bios_wr: .byte $0
+; extras
+bios_z:  .byte $0
+bios_r:  .byte $0
+bios_w:  .byte $0
 
 ; generic
-
 bios_f:  .byte $0
 bios_g:  .byte $0
 bios_h:  .byte $0
@@ -288,7 +292,7 @@ bios_t:  .byte $0
 * = $00F0
 
 bios_void: .word $0
-; bios_tmp0 = bios_void + $0
+; bios_tmp0 = bios_void + $0, reserved
 bios_tmp1 = bios_void + $2
 bios_tmp2 = bios_void + $4
 bios_tmp3 = bios_void + $6
@@ -297,40 +301,34 @@ bios_tmp5 = bios_void + $a
 bios_tmp6 = bios_void + $c
 bios_tmp7 = bios_void + $e
 
-;----------------------------------------------------------------------
-; aliases
-rd_ptr = bios_rd
-wr_ptr = bios_wr
-
-bios_from = bios_tmp1
-bios_into = bios_tmp2
+;--------------------------------------------------------
 
 .assert * > $FF, warning, "~ bios page zero over stack limit"
 
-;----------------------------------------------------------------------
+;--------------------------------------------------------
 ; at page
 * = $FF00
 
-; references of devices, 
-.repeat 8, R  
-    .word DEVS+(R)*16
-.endrepeat
-
+BIOS_VECTOR:
 ; pointers of routines
-.word delay       ; 
-.word gets        ; 
-.word puts        ; 
+
+.word blink	  ;
+.word beep	  ;
+.word _rem2map     ; 
+.word _rem2ram     ; 
+.word _ram2rem     ; 
+.word _ram2ram     ; 
 .word getc        ; 
 .word putc        ; 
 .word clock_stop  ; 
 .word clock_start ; 
 .word monitor     ; 
-.word copycat     ; 
 
 .byte $DE,$AD,$C0,$DE
 
+;--------------------------------------------------------
 .assert * > $FFFA, warning, "~ bios page last over vector limit"
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ; at $FFFA
 .segment "VECTORS"
 
@@ -339,31 +337,21 @@ bios_into = bios_tmp2
 .word _jump_rst  ; fc ROM Reset vector
 .word _jump_irq  ; fe ROM IRQ/BRK vector
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ;
 .segment "ONCE"
 
-
-.byte $DE,$AD,$C0,$DE
 _rollete:
 .byte 00,32,15,19,04,21,02,25,17,34,06,27,13,36,11,30,08,23,10
 .byte 05,24,16,33,01,20,14,31,09,22,18,29,07,28,12,35,03,26,00
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ;
 ; some code adapted from 6502.org forum
 ;
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ; interrups stubs, easy way
 ;
-; At boot, the $FF00 page is copied to $0300,
-; with default values for devices and routines
-; then all vectors could be changed and could
-; be restored also.
-;
-
-; must be at shadow rom copied to ghost ram
-
 _jump_nmi:
     jmp (NMIVEC)
 
@@ -382,9 +370,9 @@ _irq_init:
 
     rti
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ; reset stub
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 _rst_init:
 
 ; real _init:
@@ -395,8 +383,8 @@ _init:
     ; no BCD math
     cld
 
-    ; copy default page
-    jsr copycat
+    ; setup acia one
+    jsr acia_init
 
     ; setup via one
     jsr via_init 
@@ -407,43 +395,34 @@ _init:
     ; setup clock
     jsr clock_init
 
-    ; setup acia one
-    jsr acia_init
-
     ; enable interrupts
     
-    lda #<_bios_irq
-    sta IRQVEC+0
-    lda #>_bios_irq
-    sta IRQVEC+1
-
     lda #<_bios_nmi
     sta NMIVEC+0
     lda #>_bios_nmi
     sta NMIVEC+1
 
+    lda #<_bios_irq
+    sta IRQVEC+0
+    lda #>_bios_irq
+    sta IRQVEC+1
+
     ; alive
     jsr beep
-
-    ; copy eeprom I2C to $1000
-    jsr copyeep
 
     ; stack: pull is decr, push is incr
     ldx #$FF
     txs
     
-    ; clear break
-    lda #0
-    sta bios_void+0
-    sta bios_void+1
-
     ; alive
     jsr beep
     
-    ; lcd init
+    ; copy REM to RAM
+    jsr copyeep    
 
     ; there we go....
     cli
+
     jsr _main
 
 _main:
@@ -451,31 +430,26 @@ _main:
     jmp $1000
 
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 
 .include "i2c.s"
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ; beep
 beep:
     rts
 
-;---------------------------------------------------------------------
-; copy default page from ROM to RAM
-;---------------------------------------------------------------------
-copycat:
-    lda #<SHADOWS
-    sta bios_from+0
-    lda #>SHADOWS
-    sta bios_from+1
-    lda #<GHOSTS
-    sta bios_into+0
-    lda #>GHOSTS
-    sta bios_into+1
-    jsr _qcopy
+;--------------------------------------------------------
+; blink
+blink:
     rts
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
+; monitor
+monitor:
+    rts
+
+;--------------------------------------------------------
 ; copy default eeprom to RAM
 ;
 ;   $FF00-$1000=$EF00
@@ -489,7 +463,7 @@ copycat:
 ;   sense   = bios_tmp4+1
 ;   work    = bios_tmp5
 ;
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 copyeep:
     ; use device 0 and sense read
     ; copy $E000 bytes from $1000 REM to $1000 RAM
@@ -502,53 +476,16 @@ copyeep:
     sta bios_tmp2+1
     lda #$E0
     sta bios_tmp3+1
-    lda #$00 
+    lda #%01010000	; hardcoded for 24LC512 at 000, will be << 1 
     sta bios_tmp4+0
     lda #$01
     sta bios_tmp4+1
     jsr _rem2ram
     rts
 
-;---------------------------------------------------------------------
-; coarse delay loop
-;
-; 7 * dy + 4 * dy * dx + 15
-;
-; will loop 255 * 255, 261900 cycles
-; at 0.9216 MHz about 284 ms
-;
-; eg. 25.000 ms  is  75   75
-;
-; y = dy, x = dx
-;
-;---------------------------------------------------------------------
-delay:             ; 6 call
-@loop:    
-    txa            ; 2 Get delay loop 
-@y_delay: 
-    tax            ; 2 Get delay loop
-@x_delay:
-    dex            ; 2
-    bne @x_delay   ; 2
-    dey            ; 2
-    bne @y_delay   ; 2
-    rts            ; 6 return
-
-;---------------------------------------------------------------------
-; delay 25ms, 0.9216 MHz phi0
-;---------------------------------------------------------------------
-delay_25ms:
-    ldx #75
-    ldy #75
-    jsr delay
-    rts
-;---------------------------------------------------------------------
-monitor:
-    rts
-
-;======================================================================
+;========================================================
 ; NMI, counts ticks
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 _bios_nmi:
 
 _bios_tick:
@@ -567,7 +504,7 @@ _bios_tick:
 ;======================================================================
 ; IRQ|BRK, handler
 ; easy minimal 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 _bios_irq:
 
 _bios_init_easy:
@@ -583,7 +520,7 @@ _bios_init_easy:
     bne _bios_soft_easy
     beq _bios_hard_easy
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 _bios_ends_easy:
     ldy bios_y
     ldx bios_x
@@ -591,17 +528,17 @@ _bios_ends_easy:
     cli
     rti
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 _bios_hard_easy:
 
 @scan_via:
-	bit VIA_IFR
-	bpl @scan_tia
-	jmp service_via
+    bit VIA_IFR
+    bpl @scan_tia
+    jmp service_via
 @scan_tia:
-	bit TIA_IFR
+    bit TIA_IFR
     bpl @scan_cia
-	jmp service_tia
+    jmp service_tia
 @scan_cia:
     lda CIA_STAT
     bpl @scan_panic
@@ -609,7 +546,7 @@ _bios_hard_easy:
 @scan_panic:
     jmp _bios_ends_easy
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 _bios_soft_easy:
     ;
     ; from a BRK, a software interrupt
@@ -622,79 +559,185 @@ _bios_soft_easy:
     ;
     jmp _bios_ends_easy
 
-;---------------------------------------------------------------------
-;	attend interrupt 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
+;    attend interrupt 
 service_via:
-	pha
-	lda #$7F
-	sta VIA_IFR;
-	jmp _bios_ends_easy
+    pha
+    lda #$7F
+    sta VIA_IFR;
+    jmp _bios_ends_easy
 
-;---------------------------------------------------------------------
-;	attend interrupt 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
+;    attend interrupt 
 service_tia:
-	pha
-	lda #$7F
-	sta TIA_IFR;
-	jmp _bios_ends_easy
+    pha
+    lda #$7F
+    sta TIA_IFR;
+    jmp _bios_ends_easy
 
-;---------------------------------------------------------------------
-;	attend interrupt 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
+;    attend interrupt 
 service_cia:
-	jmp _bios_ends_easy
-
-;---------------------------------------------------------------------
-;   interrupts stubs, trampolines
-;---------------------------------------------------------------------
-_bios_save_registers:
-    lda bios_a
-    pha
-    txa
-    pha
-    tya
-    pha
-    ; fake jump indirect
-    lda #>_bios_load_registers
-    pha
-    lda #<_bios_load_registers
-    pha
-    rts
-
-;---------------------------------------------------------------------
-_bios_load_registers:
-    pla
-    tay
-    pla
-    tax
-    pla
-    sta bios_a
-    rti
+    jmp _bios_ends_easy
 
 ;======================================================================
 
-;---------------------------------------------------------------------
-; getc , wait in loop could hang
-;---------------------------------------------------------------------
+;--------------------------------------------------------
+;
+; clock tick, using VIA T1 free run 
+; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
+;
+;--------------------------------------------------------
+clock_init:
+    ; store counter
+    lda #$00
+    sta VIA_T1CL
+    lda #$24
+    sta VIA_T1CH
+    ; setup free-run and intrrupt at time-out
+    lda VIA_ACR
+    and #$7F    ;   %01111111
+    ora #$40    ;   %01000000
+    sta VIA_ACR
+
+;--------------------------------------------------------
+; start clock
+clock_start:    
+    lda #%11000000
+    sta VIA_IER
+    rts
+
+;--------------------------------------------------------
+; stop clock    
+clock_stop:
+    lda #%10000000
+    sta VIA_IER
+    rts
+
+;--------------------------------------------------------
+;   acia_init, configures 19200,N,8,1 default 6551
+;
+acia_init:
+    pha            ; Push A to stack
+    lda #0
+    sta CIA_STAT
+    ; %0001 1110 =  9600 baud, external receiver, 8 bit , 1 stop bit
+    ; %0001 1111 = 19200 baud, external receiver, 8 bit , 1 stop bit
+    lda #$1F     
+    sta CIA_CTRL
+    ; %0000 1011 = no parity, normal mode, RTS low, INT disable, DTR low 
+    lda #$0B     
+    sta CIA_COMM
+    pla             ; Restore A
+    clc
+    rts
+
+;----------------------------------------------------------------
+;   acia_pull, receive a byte thru 6551, no waits
+;
 getc :  
-    jsr acia_rx
-    bcs getc 
+acia_rx:
+; verify
+    sec
+    lda CIA_STAT
+    and #8
+    beq @ends
+; receive
+    lda CIA_RX
+    clc
+@ends:
     rts
 
-;---------------------------------------------------------------------
-; puch, wait in loop could hang
-;---------------------------------------------------------------------
+;----------------------------------------------------------------
+;   acia_push, transmit a byte thru 6551, no waits
+;
 putc :  
-    jsr acia_tx
-    bcs putc 
+acia_tx:
+; verify
+    pha
+    lda CIA_STAT
+    and #16
+    beq @ends
+; transmit
+    pla                
+    sta CIA_TX     
+    clc
+    rts
+@ends:    
+    pla
+    sec
     rts
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
+;   via_init, I2C, SPI, LCD, KBD, 
+via_init:
+    rts
+
+;--------------------------------------------------------
+;   tia_init, extra VIA, future use
+tia_init:
+    rts            
+
+.byte $DE,$AD,$C0,$DE
+
+;--------------------------------------------------------
+;--------------------------------------------------------
+ACIA_EXTRAS = 0
+.IF ACIA_EXTRAS
+
+rd_ptr = bios_rd
+wr_ptr = bios_wr
+
+;--------------------------------------------------------
+;   acia_rd, circular buffer, no waits
+acia_rd:
+    ldx rd_ptr
+    lda buffer, x
+    inc rd_ptr
+@xon:
+    jsr acia_df
+    CMP #$E0
+    bcs @ends
+    lda #9
+    sta CIA_COMM
+    lda XON_
+    jsr acia_tx
+    bcs @xon
+@ends:    
+    rts
+
+;----------------------------------------------------------------
+;   acia_wd, circular buffer, no waits
+;----------------------------------------------------------------
+acia_wr:
+    ldx wr_ptr
+    sta buffer, x
+    inc wr_ptr
+@xoff: 
+    jsr acia_df
+    cmp #$F0
+    bcc @ends
+    lda #1
+    sta CIA_COMM
+    lda XOFF_
+    jsr acia_tx
+    bcs @xoff
+@ends:    
+    rts
+
+;----------------------------------------------------------------
+;   acia_df, circular buffer, no waits
+;----------------------------------------------------------------
+acia_df:
+    lda wr_ptr
+    sec
+    sbc rd_ptr
+    rts
+
+;--------------------------------------------------------
 ; max 255 bytes
 ; mess with CR LF (Windows), LF (Unix) and CR (Macintosh) line break types.
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 gets:
     ldy #0
 @loop:
@@ -742,9 +785,9 @@ gets:
     clc
     rts
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ; max 255 bytes
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 puts:
     ldy #0
 @loop:
@@ -758,180 +801,40 @@ puts:
 @ends:
     rts
 
-;---------------------------------------------------------------------
-;
-; clock tick, using VIA T1 free run 
-; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
-;
-;---------------------------------------------------------------------
-clock_init:
-    ; store counter
-    lda #$00
-    sta VIA_T1CL
-    lda #$24
-    sta VIA_T1CH
-    ; setup free-run and intrrupt at time-out
-    lda VIA_ACR
-    and #$7F    ;   %01111111
-    ora #$40    ;   %01000000
-    sta VIA_ACR
+;--------------------------------------------------------
+.ENDIF
+;--------------------------------------------------------
 
-;---------------------------------------------------------------------
-; start clock
-;---------------------------------------------------------------------
-clock_start:    
-    lda #%11000000
-    sta VIA_IER
-    rts
-
-;---------------------------------------------------------------------
-; stop clock    
-;---------------------------------------------------------------------
-clock_stop:
-    lda #%10000000
-    sta VIA_IER
-    rts
-
-;---------------------------------------------------------------------
-;   acia_init, configures 19200,N,8,1 FIXED
-;---------------------------------------------------------------------
-acia_init:
-    pha			; Push A to stack
-    lda #0
-    sta CIA_STAT
-    ; %0001 1110 =  9600 baud, external receiver, 8 bit , 1 stop bit
-    ; %0001 1111 = 19200 baud, external receiver, 8 bit , 1 stop bit
-    lda #$1F     
-    sta CIA_CTRL
-    ; %0000 1011 = no parity, normal mode, RTS low, INT disable, DTR low 
-    lda #$0B     
-    sta CIA_COMM
-    pla             ; Restore A
-    clc
-    rts
-
-;-------------------------------------------------------------------------------
-;   acia_rd, circular buffer, no waits
-;-------------------------------------------------------------------------------
-acia_rd:
-    ldx rd_ptr
-    lda buffer, x
-    inc rd_ptr
-@xon:
-    jsr acia_df
-    CMP #$E0
-    bcs @ends
-    lda #9
-    sta CIA_COMM
-    lda XON_
-    jsr acia_tx
-    bcs @xon
-@ends:    
-    rts
-
-;-------------------------------------------------------------------------------
-;   acia_wd, circular buffer, no waits
-;-------------------------------------------------------------------------------
-acia_wr:
-    ldx wr_ptr
-    sta buffer, x
-    inc wr_ptr
-@xoff: 
-    jsr acia_df
-    cmp #$F0
-    bcc @ends
-    lda #1
-    sta CIA_COMM
-    lda XOFF_
-    jsr acia_tx
-    bcs @xoff
-@ends:    
-    rts
-
-;-------------------------------------------------------------------------------
-;   acia_df, circular buffer, no waits
-;-------------------------------------------------------------------------------
-acia_df:
-    lda wr_ptr
-    sec
-    sbc rd_ptr
-    rts
-
-;-------------------------------------------------------------------------------
-;   acia_pull, receive a byte thru 6551, no waits
-;-------------------------------------------------------------------------------
-acia_rx:
-; verify
-    sec
-    lda CIA_STAT
-    and #8
-    beq @ends
-; receive
-    lda CIA_RX
-    clc
-@ends:
-    rts
-
-;-------------------------------------------------------------------------------
-;   acia_push, transmit a byte thru 6551, no waits
-;-------------------------------------------------------------------------------
-acia_tx:
-; verify
-    pha
-    lda CIA_STAT
-    and #16
-    beq @ends
-; transmit
-    pla            	
-    sta CIA_TX     
-    clc
-    rts
-@ends:    
-    pla
-    sec
-    rts
-
-;---------------------------------------------------------------------
-;   via_init, I2C, SPI, LCD, KBD, 
-;---------------------------------------------------------------------
-via_init:
-    rts
-
-;---------------------------------------------------------------------
-;   tia_init, extra VIA, future use
-;---------------------------------------------------------------------
-tia_init:
-    rts			
-
-;---------------------------------------------------------------------
+LOW_ROUTINES = 0
+.IF LOW_ROUTINES
+;--------------------------------------------------------
 ; convert an ASCII character to a binary number
-;---------------------------------------------------------------------
-qdigit:
+_atoi:
 @number:
-    cmp #'0'-1
+    cmp #'0'
     bcc @nohex
     cmp #'9'+1
     bcs @letter
-    sbc #'0'
     clc
+    sbc #'0'
     rts
 @letter:    
     ora #32 
-    cmp #'a'-1
+    cmp #'a'
     bcc @nohex
     cmp #'f'+1
     bcs @nohex
-    sbc #'a'-10
     clc
+    sbc #'a'-10
     rts
 @nohex:    
     sec
     rts
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 ;   one page functions
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 _qcopy:
     ; x bytes to copy
     ldy #0
@@ -943,7 +846,7 @@ _qcopy:
     bne @loop
     rts
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 _qfill:
     ; a byte to fill
     ; x bytes to fill
@@ -955,7 +858,7 @@ _qfill:
     bne @loop
     rts
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 _qskip:
     ; a byte to skip
     ldy #0
@@ -967,7 +870,7 @@ _qskip:
 @ends:    
     rts
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
 _qscan:
     ; a byte to scan
     ldy #0
@@ -979,6 +882,32 @@ _qscan:
 @ends:    
     rts
 
-;---------------------------------------------------------------------
+;--------------------------------------------------------
+; coarse delay loop
+; will loop 255 * 255, 261900 cycles
+; at 0.9216 MHz about 284 ms
+;
+delay:             ; 6 call
+@loop:    
+    txa            ; 2 Get delay loop 
+@y_delay: 
+    tax            ; 2 Get delay loop
+@x_delay:
+    dex            ; 2
+    bne @x_delay   ; 2
+    dey            ; 2
+    bne @y_delay   ; 2
+    rts            ; 6 return
 
+;--------------------------------------------------------
+; delay 25ms, 0.9216 MHz phi0
+;
+delay_25ms:
+    ldx #75
+    ldy #75
+    jsr delay
+    rts
 
+;--------------------------------------------------------
+.ENDIF
+;--------------------------------------------------------

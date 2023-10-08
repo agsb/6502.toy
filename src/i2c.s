@@ -73,18 +73,22 @@
 ;
 ;----------------------------------------------------------------------
     
-_ram2ram:
-    lda #$02
+	
+_ram2cpy:
+    lda #$03
     bne _moves
 
 _rem2ram:
-    lda #$01
+    lda #$02
     bne _moves
 
 _ram2rem:
-    lda #$00 
+    lda #$01 
     beq _moves
 
+;----------------------------------------------------------------------
+; does copy from into, not rem to rem.
+;
 _moves:
 @p0:
     sta SENS
@@ -100,9 +104,11 @@ _moves:
 @p1:
     ; copy a page
     lda SENS
-    cmp #$01    ; rem2ram
+    cmp #$03    ; ram2ram
+    beq @inram
+    cmp #$02    ; rem2ram
     beq @toram
-    cmp #$00    ; ram2rem
+    cmp #$01    ; ram2rem
     beq @torem
 @panic:
     sec
@@ -145,22 +151,17 @@ _moves:
     dec LEN_PTR+1
 @p5:
     ; if len == 0 ends
-    clc
     lda #$00
     cmp LEN_PTR+1
-    bne @p7
+    bne @p0
     cmp LEN_PTR+0
-    bne @p7
-@p6:
+    bne @p0
     ; ends
+    clc
     rts
     
-@p7:
-    ; loop
-    jmp @p0
-    
 ;----------------------------------------------------------------------
-_i2c_inram:
+_ram2ram:
     ; read a page
     ldy #$0
 @loop:
@@ -222,13 +223,41 @@ _i2c_torem:
     rts
 
 ;----------------------------------------------------------------------
-;   Microchip mask is 1010|A2|A1|A0|R/W, A2,A1,A0 hardwired
+; scans for 1 to 128,  ((4 bits device | 3 bits address) << 1) | 1 bit write
+; return a list of address alive in buffer, zero at end
+_rem2map:
+_i2c_scan:
+	ldx #$01
+    ldy #$00
+@loop:
+    jsr _i2c_start
+	txa
+	asl A
+	jsr _i2c_putc
+	cmp #$0
+	bcs @next
+@ack:
+	; alive response
+	txa
+	sta buffer, Y
+	iny
+@next:
+	jsr _i2c_stop
+	inx
+	cpx #$80
+	bcc @loop
+@ends:
+	lda #$00
+	sta buffer, Y
+	rts
+	
+;----------------------------------------------------------------------
+;   Microchip mask is 1010|A2|A1|A0|R/W, A2,A1,A0 glue zero
 ;   a = 0 write, a = 1 read
 _i2c_setDevice:
     ror
     lda DEVP
     rol
-    ora #$A0 ; all devices
     jsr _i2c_putc
     rts
 
@@ -273,12 +302,12 @@ _i2c_getc:
     dex
     bne @loop
 @end:     
-    jsr _i2c_ack
     rts
 
 ;----------------------------------------------------------------------
 ; receive a bit
 _recv_bit:    
+    jsr sda_high
     jsr scl_high
     ; nop ???
     lda PRA
@@ -291,6 +320,7 @@ _recv_bit:
     lda #$01
 @ends:
     jsr scl_down
+;    jsr sda_down
     rts      
 
 ;----------------------------------------------------------------------
