@@ -264,6 +264,7 @@ full_via_test = 1
 
 ; clock
 bios_tick:  .word $0, $0
+bios_seed:  .word $02A8
 
 ; copycats
 bios_a:  .byte $0
@@ -271,11 +272,7 @@ bios_s:  .byte $0
 bios_x:  .byte $0
 bios_y:  .byte $0
 bios_p:  .byte $0
-
-; extras
 bios_z:  .byte $0	; keep zero
-bios_r:  .byte $0
-bios_w:  .byte $0
 
 ; generic
 bios_f:  .byte $0
@@ -299,6 +296,20 @@ bios_tmp7 = bios_void + $e
 
 .byte $DE,$AD,$C0,$DE
 
+* = $FF00
+.word beep
+.word blink
+.word hitc
+.word getc
+.word putc
+.word _tick_start
+.word _tick_stop
+.word _tick_zero
+.word _ram2ram
+.word _rem2ram
+.word _rem2rem
+.word _reset
+
 ;--------------------------------------------------------
 ; at $FFFA
 .segment "VECTORS"
@@ -313,8 +324,9 @@ bios_tmp7 = bios_void + $e
 .segment "ONCE"
 
 _rollete:
-.byte 00,32,15,19,04,21,02,25,17,34,06,27,13,36,11,30,08,23,10
-.byte 05,24,16,33,01,20,14,31,09,22,18,29,07,28,12,35,03,26,00
+.byte 00
+.byte 32,15,19,04,21,02, 25,17,34,06,27,13, 36,11,30,08,23,10
+.byte 05,24,16,33,01,20, 14,31,09,22,18,29, 07,28,12,35,03,26
 
 ;--------------------------------------------------------
 ;
@@ -345,6 +357,8 @@ _irq_init:
 ; reset stub
 ;--------------------------------------------------------
 _rst_init:
+
+reset:
 
 ; real _init:
 _init:
@@ -422,7 +436,11 @@ _main:
 .include "i2c.s"
 
 ;--------------------------------------------------------
-; BEEP_FREQ_DIVIDER = 461	; 1 KHz a@ 9216 kHz 
+; BEEP_FREQ_DIVIDER = 461	; 1 KHz @ 921,6 kHz 
+; 1 kHz is the censor TV classic
+; Quindar tones 2525 Hz start, 2475 Hz stop
+; Sequences of 1% error
+; C5 176, D5 156, E5 140, F5 132, G5 118, A5 105 
 ; beep
 beep:
     rts
@@ -798,10 +816,57 @@ clock_stop:
     rts
 
 ;--------------------------------------------------------
+; clear clock    
+clock_zero:
+    jsr clock_stop
+    lda #$00
+    sta bios_tick+0
+    sta bios_tick+1
+    sta bios_tick+2
+    sta bios_tick+3
+    jsr clock_start
+    rts
+
+;--------------------------------------------------------
 ;   tia_init, extra VIA, future use
 _tia_init:
     rts            
 
 .byte $DE,$AD,$C0,$DE
 
-;--------------------------------------------------------
+;----------------------------------------------------------------------
+;
+;   ok  ( -- w)
+;
+;     ©2000-2021 by Gerhard Schmidt,
+;      http://www.avr-asm-tutorial.net/avr_en/apps/random_tn13/random_calc_tn13.html
+;
+;    seed ~ 0x02A8
+;
+;     also good seeds
+;
+;.word  $02A8
+;.word  $B167, $4A3C, $9879, $B61E, $7B26
+;.word  $A858, $1F88, $50D5, $419D, $5537
+;.word  $0224, $0527, $5EB6, $1E6D, $BCDC
+;.word  $92FF, $C206, $0ECD, $9361, $2823
+;.word  $BE0B, $B303, $6462, $0E4C, $3D24
+;
+random:
+	lda bios_seed+1
+	eor bios_seed+0
+	adc bios_seed+0
+	ldy bios_seed+1
+	sta bios_seed+1
+	sty bios_seed+0
+	rts
+
+;----------------------------------------------------------------------
+roll:
+    jsr random
+    and #%00111111
+    adc #10
+    ror 
+    tay
+    lda roullete, y
+    rts
