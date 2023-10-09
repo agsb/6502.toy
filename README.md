@@ -6,7 +6,7 @@
 
 _I seek for learn, not for speed._
 
-I had a Apple II. The Furby was a two 6502 'like' toy. I want make a SBC minimal as my toy.
+I had an Apple II. The Furby was a two 6502 'like' toy. I want make a SBC minimal as my toy.
 
 There are many "clones" [Ben Eater](https://eater.net/6502), [Mike](https://github.com/mike42/6502-computer), [Maarten](https://github.com/maarten-pennings/6502/tree/master), [Grant](http://searle.x10host.com/6502/Simple6502.html), [Álvarez](https://www.ele.uva.es/~jesus/6502copy/proto.html) and others.
 
@@ -14,10 +14,13 @@ And a Great support from [6502.org](http://6502.org/) forum and [Wilson Mines Co
 
 This is a board for learn and testing the version for 6502 of Minimal Indirect Thread Code Forth as [IMMU](https://github.com/agsb/immu)
 
-PS. 
-        [Ben Eater](https://www.youtube.com/watch?v=LnzuMJLZRdU) made a revival of 6502. 
+PS.
+
+- [Ben Eater](https://www.youtube.com/watch?v=LnzuMJLZRdU) made a revival of 6502. 
+- using ROM, for read-only memory,
+- using RAM, for random access memory, 
+- using REM, for regular eeprom memory,
         
-      
 ## Road Map
 
 - make all circuit plans
@@ -48,7 +51,7 @@ Use wire wrap.
 
 Test NMOS-6502, CMOS-65C02,
 
-The actual memory map will be 60k RAM $0000-$BFFF, 2k Devices $F000-$F7FF and $F800-$FFFF 2k ROM. 
+The actual memory map will be 60k RAM $0000-$EFFF, 2k Devices $F000-$F7FF and $F800-$FFFF 2k ROM. 
 
 The board will have one 6551 ACIA and two 6522 VIA inside, with expansion of more 4 devices.
 
@@ -58,7 +61,7 @@ A clock board by crystal of 1.8432 for CIA and by 74HC74 of 0.9612 for CPU, with
 
 No video or keyboard, using terminal at USART 19200 8N1, RS-232, vt-100.
 
-Using a LCD 16x2, a keyboard with 6 keys and some led for minimal use.
+Using a LCD 16x2 by I2C, a keyboard with 6 keys, a beeper and a led, for minimal use.
 
 Using I2C and SPI protocols and devices. 
 
@@ -78,14 +81,15 @@ Use USART for VT100 terminal, Tera-Term or PuTTy at computer.
 
 generic routines at bios:
 
-    - clock tick
-    - copycat page
-    - copycat eeprom
-    - getch
-    - putch
-    - getline
-    - putline
-
+    - ram2ram,        copy bytes from RAM to RAM
+    - rem2ram,        copy bytes from REM to RAM
+    - ram2rem
+    - getc
+    - putc
+    - hitc
+    - tick_start
+    - tick_stop
+    
 ## Memory 
 
 The first 4k of RAM $0000-$0FFF is reserved for system.
