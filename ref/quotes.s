@@ -39,6 +39,8 @@ messages:
     .asciiz "It’s not a bug; it’s an undocumented feature."
 
     .asciiz "Programming is learned by writing programs."
+ 
+    .asciiz "Monkey see, monkey do."
 
     .asciiz "1n73ll163nc3 15 7h3 4b1l17y 70 4d4p7 70 ch4ng35."
 

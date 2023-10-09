@@ -111,6 +111,14 @@
     
     - using REM for regular eeprom memory, as flash eeprom with I2C protocol.
 
+### Todo
+
+    - a POST routine, power on self test, with beep/blink diagnostics
+    - check size of RAM, ROM, in 4 kb blocks, $0000..$F000
+    - check I2C, REM, LCD, 
+    - responses from ACIA, VIA, TIA 	
+    
+
 .ENDIF
 ;--------------------------------------------------------
 ;
@@ -154,6 +162,9 @@
     WAIT    = 2
     BUSY    = 3
 
+; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
+
+   CLOCK = $2400
 ;--------------------------------------------------------
 ; devices
  
@@ -238,6 +249,11 @@
     RSTVEC = $03FC
 
     IRQVEC = $03FE
+
+;--------------------------------------------------------
+; compiler
+
+full_via_test = 1
 
 ;--------------------------------------------------------
 ;   at page zero
@@ -332,13 +348,29 @@ _rst_init:
 
 ; real _init:
 _init:
+    
     ; disable interrupts
     sei
 
-    ; no BCD math
+    ;0x0 wise
     cld
+    
+    ; prepare stack
+    ldx #$FF
+    txs
 
-    ; enable interrupts
+    ; clear RAM
+    lda #$00
+    tay
+@loop:
+    sta $0000, y
+    sta $0100, y
+    sta $0200, y
+    sta $0300, y
+    iny
+    bne @loop
+
+    ; prepare interrupts
     
     lda #<_bios_nmi
     sta NMIVEC+0
@@ -350,8 +382,8 @@ _init:
     lda #>_bios_irq
     sta IRQVEC+1
     
-    ; alive
-    jsr beep
+    ; post 
+    jsr _post
 
     ; setup acia one
     jsr _acia_init
@@ -362,13 +394,6 @@ _init:
     ; setup via two 
     jsr _tia_init
 
-    ; setup clock
-    jsr _clock_init
-
-    ; stack: pull is decr, push is incr
-    ldx #$FF
-    txs
-    
     ; alive
     jsr beep
     
@@ -378,12 +403,17 @@ _init:
     ; alive
     jsr beep
 
-    ; there we go....
+    ; enable interrupts
     cli
 
+    ; setup clock
+    jsr _clock_init
+
+    ; there we go....
     jsr _main
 
 _main:
+
     ; insanity for safety
     jmp $400
 
@@ -392,8 +422,128 @@ _main:
 .include "i2c.s"
 
 ;--------------------------------------------------------
+; BEEP_FREQ_DIVIDER = 461	; 1 KHz a@ 9216 kHz 
 ; beep
 beep:
+    rts
+
+;--------------------------------------------------------
+; power on self test
+_post:
+
+@test_ram:
+    lda #$00
+    sta bios_tmp1
+    lda #$10
+    sta bios_tmp1
+    ldx #$00
+    ldy #$00
+@loop:
+    lda #$55
+    sta (bios_tmp1), y
+    lda (bios_tmp1), y
+    cmp #$55
+    bne @fail_ram
+    lda #$AA
+    sta (bios_tmp1), y
+    lda (bios_tmp1), y
+    cmp #$AA
+    bne @fail_ram
+    lda #$00
+    sta (bios_tmp1), y
+    lda (bios_tmp1), y
+    cmp #$00
+    bne @fail_ram
+@next:
+    clc
+    lda #$10
+    adc (bios_tmp1+1), y
+    cmp #$F0
+    bcs @ends
+    sta (bios_tmp1+1), y
+    bcc @loop  
+@ends:    
+    bcs @test_via
+
+@fail_ram:
+    sec
+    rts
+
+@test_via:
+    lda VIA_IER
+    cmp #%10000000  
+    bne @fail_via
+
+.if full_via_test
+
+    lda #$FF
+    sta VIA_DDRA
+    sta VIA_DDRB
+
+    lda #$55
+    sta VIA_PA
+    cmp VIA_PA
+    bne @fail_via
+    sta VIA_PB
+    cmp VIA_PB
+    bne @fail_via
+
+    lda #$aa
+    sta VIA_PA
+    cmp VIA_PA
+    bne @fail_via
+    sta VIA_PB
+    cmp VIA_PB
+    bne @fail_via
+
+.endif
+
+    beq @test_tia
+
+@fail_via:
+    sec
+    rts
+
+@test_tia:
+    lda TIA_IER
+    cmp #%10000000  
+    bne @fail_tia
+
+.if full_via_test
+
+    lda #$FF
+    sta TIA_DDRA
+    sta TIA_DDRB
+
+    lda #$55
+    sta TIA_PA
+    cmp TIA_PA
+    bne @fail_tia
+    sta TIA_PB
+    cmp TIA_PB
+    bne @fail_tia
+
+    lda #$aa
+    sta TIA_PA
+    cmp TIA_PA
+    bne @fail_tia
+    sta TIA_PB
+    cmp TIA_PB
+    bne @fail_tia
+
+.endif
+
+    beq @okey
+
+@fail_tia:
+    sec
+    rts
+
+@okey:
+    jmp @post_end
+
+@post_end:
+    clc
     rts
 
 ;--------------------------------------------------------
@@ -527,6 +677,7 @@ service_cia:
 ;   acia_init, configures 19200,N,8,1 default 6551
 ;
 _acia_init:
+    ; reset CIA
     lda #0
     sta CIA_STAT
     ; %0001 1110 =  9600 baud, external receiver, 8 bit , 1 stop bit
@@ -584,9 +735,21 @@ putc :
     beq @acia_tx
 ; transmit
     pla                
-    sta CIA_TX     
+    sta CIA_TX 
     clc
     rts
+
+.IF 0
+delay:
+    ldx #$FF
+@delay:
+    nop
+    nop
+    dex
+    bne @delay
+    rts
+.ENDIF
+
 
 ;--------------------------------------------------------
 ;   via_init, I2C, SPI, LCD, KBD, 
@@ -610,9 +773,9 @@ _via_init:
 ;
 _clock_init:
     ; store counter
-    lda #$00
+    lda #<CLOCK
     sta VIA_T1CL
-    lda #$24
+    lda #>CLOCK
     sta VIA_T1CH
     ; setup free-run and intrrupt at time-out
     lda VIA_ACR
