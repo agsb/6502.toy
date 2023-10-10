@@ -65,7 +65,7 @@
     
     $F010   bios device 01, acia 6551, USART TERMINAL
     
-    $F020   bios device 02,  via 6522, CLOCK, I2C, SPI, LCD, KBD
+    $F020   bios device 02,  via 6522, TICK, I2C, SPI, LCD, KBD
     
     $F030   bios device 03,  via 6522, user
     
@@ -164,7 +164,7 @@
 
 ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
 
-   CLOCK = $2400
+   tick = $2400
 ;--------------------------------------------------------
 ; devices
  
@@ -223,7 +223,7 @@
 ;--------------------------------------------------------
 ; VIA port A
 
-;   T1 is clock, NMI interrupt /;
+;   T1 is tick, NMI interrupt /;
 ;
 ; for USART
     USRX = (1 << 7)    
@@ -262,9 +262,8 @@ full_via_test = 1
 ;
 * = $00E0
 
-; clock
+; tick
 bios_tick:  .word $0, $0
-bios_seed:  .word $02A8
 
 ; copycats
 bios_a:  .byte $0
@@ -279,6 +278,8 @@ bios_f:  .byte $0
 bios_g:  .byte $0
 bios_h:  .byte $0
 bios_t:  .byte $0
+
+bios_seed:  .word $02A8, $B167
 
 * = $00F0
 
@@ -307,7 +308,7 @@ bios_tmp7 = bios_void + $e
 .word _tick_zero
 .word _ram2ram
 .word _rem2ram
-.word _rem2rem
+.word _ram2rem
 .word _reset
 
 ;--------------------------------------------------------
@@ -322,11 +323,6 @@ bios_tmp7 = bios_void + $e
 ;--------------------------------------------------------
 ;
 .segment "ONCE"
-
-_rollete:
-.byte 00
-.byte 32,15,19,04,21,02, 25,17,34,06,27,13, 36,11,30,08,23,10
-.byte 05,24,16,33,01,20, 14,31,09,22,18,29, 07,28,12,35,03,26
 
 ;--------------------------------------------------------
 ;
@@ -358,7 +354,7 @@ _irq_init:
 ;--------------------------------------------------------
 _rst_init:
 
-reset:
+_reset:
 
 ; real _init:
 _init:
@@ -420,8 +416,8 @@ _init:
     ; enable interrupts
     cli
 
-    ; setup clock
-    jsr _clock_init
+    ; setup tick
+    jsr _tick_init
 
     ; there we go....
     jsr _main
@@ -440,9 +436,18 @@ _main:
 ; 1 kHz is the censor TV classic
 ; Quindar tones 2525 Hz start, 2475 Hz stop
 ; Sequences of 1% error
-; C5 176, D5 156, E5 140, F5 132, G5 118, A5 105 
+; frequencies D5 523, D5 587, E5 659, F5 698, G5 784, A5 880 
+; for 460,800 kHz beat on/off
+; counters D5 881, D5 785, E5 699, F5 660, G5 588, A5 524 
+;
 ; beep
 beep:
+
+
+    rts
+
+;--------------------------------------------------------
+blink:
     rts
 
 ;--------------------------------------------------------
@@ -789,11 +794,11 @@ _via_init:
 ; clock tick, using VIA T1 free run 
 ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
 ;
-_clock_init:
+_tick_init:
     ; store counter
-    lda #<CLOCK
+    lda #<tick
     sta VIA_T1CL
-    lda #>CLOCK
+    lda #>tick
     sta VIA_T1CH
     ; setup free-run and intrrupt at time-out
     lda VIA_ACR
@@ -802,29 +807,29 @@ _clock_init:
     sta VIA_ACR
 
 ;--------------------------------------------------------
-; start clock
-clock_start:    
+; start tick
+_tick_start:    
     lda #%11000000
     sta VIA_IER
     rts
 
 ;--------------------------------------------------------
-; stop clock    
-clock_stop:
+; stop tick    
+_tick_stop:
     lda #%10000000
     sta VIA_IER
     rts
 
 ;--------------------------------------------------------
-; clear clock    
-clock_zero:
-    jsr clock_stop
+; clear tick    
+_tick_zero:
+    jsr _tick_stop
     lda #$00
     sta bios_tick+0
     sta bios_tick+1
     sta bios_tick+2
     sta bios_tick+3
-    jsr clock_start
+    jsr _tick_start
     rts
 
 ;--------------------------------------------------------
@@ -853,20 +858,85 @@ _tia_init:
 ;.word  $BE0B, $B303, $6462, $0E4C, $3D24
 ;
 random:
+
 	lda bios_seed+1
 	eor bios_seed+0
 	adc bios_seed+0
 	ldy bios_seed+1
 	sta bios_seed+1
 	sty bios_seed+0
+
+.if 0
+
+	lda bios_seed+2
+	eor bios_seed+1
+	adc bios_seed+1
+	ldy bios_seed+2
+	sta bios_seed+2
+	sty bios_seed+1
+
+	lda bios_seed+3
+	eor bios_seed+2
+	adc bios_seed+2
+	ldy bios_seed+3
+	sta bios_seed+3
+	sty bios_seed+2
+
+	lda bios_seed+4
+	eor bios_seed+3
+	adc bios_seed+3
+	ldy bios_seed+4
+	sta bios_seed+4
+	sty bios_seed+3
+
 	rts
 
+.endif 
+
 ;----------------------------------------------------------------------
-roll:
+rolette:
     jsr random
     and #%00111111
     adc #10
     ror 
     tay
-    lda roullete, y
+    lda _roulette, y
     rts
+    
+;0-32-15-19-04-21-02-25-17-34-06-27-13-36-11-30-08-23-10
+; -05-24-16-33-01-20-14-31-09-22-18-29-07-28-12-35-03-26
+
+_roulette:
+.byte 32,15,19,04,21,02, 25,17,34,06,27,13, 36,11,30,08,23,10
+.byte 05,24,16,33,01,20, 14,31,09,22,18,29, 07,28,12,35,03,26
+.byte 00
+
+;----------------------------------------------------------------------
+
+.end
+
+ LDA  VIA_DDRB
+
+ ORA #$80
+
+ STA  VIA_DDRB   ; Set the high bit in DDRB, to make PB7 an output.
+
+ LDA  VIA_ACR    ; Set the two high bits in the ACR to get the
+
+ ORA #$C0        ; square-wave output on PB7.  (Don't enable the
+
+ STA  VIA_ACR    ; T1 interrupt in the IER though.)
+
+ LDA #255        ; Set the T1 timeout period. LOWER THIS TO SOMETHING LIKE 77 FOR 1MHZ CPU CLOCK
+
+ STA $6004       ; VIA_T1CL   ;USE 255 if the Φ2 rate is 5MHz.  
+
+ LDA #100        ; Beep Tone, 0 highest, 255 lowest
+
+ STA $6005       ; VIA_T1CH    ;We are now beeping
+
+ It will not stop until the system is reset or you turn it off.
+
+ BEEP_Off:
+
+ STZ $600b       ;VIA_ACR ;No more beep! 
