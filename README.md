@@ -44,7 +44,8 @@ PS.
         - 04 x 3k3 Ohm
         - 12 x 0.1 uF
         - 01 x +4.7 uF 
-        -
+        - 
+        
 All devices are CMOS and 5V capable.        
 
 Use wire wrap. 
@@ -55,7 +56,9 @@ The actual memory map will be 60k RAM $0000-$EFFF, 2k Devices $F000-$F7FF and $F
 
 The board will have one 6551 ACIA and two 6522 VIA inside, with expansion of more 4 devices.
 
-The devices are mapped at $F000, $F010 to $F0F0, reserving 16 bytes for control for each device. Also using a 3:8 74HC138 decoder, with $0 reserved, $1 ACIA, $2 VIA, $3 VIA, onboard and $4 to $7 at expansion.
+The devices are mapped at $F000, $F010 to $F0F0, reserving 16 bytes for control for each device. 
+
+Also using a 3:8 74HC138 decoder, with $0 reserved, $1 ACIA, $2 VIA, $3 VIA, onboard and $4 to $7 at expansion.
 
 A clock board by crystal of 1.8432 for CIA and by 74HC74 of 0.9612 for CPU, with a Real Timer Click as NMI with 10ms delay using a VIA T1 timer.
 
@@ -67,7 +70,9 @@ Using I2C and SPI protocols and devices.
 
 The board have 2 8-pins slots for I2C epproms.
 
-Use [65SIB](http://forum.6502.org/viewtopic.php?t=1064&start=105)
+Use [UEXT](https://en.wikipedia.org/wiki/UEXT) interface for USART, I2C, SPI.
+
+Use [65SIB](http://forum.6502.org/viewtopic.php?t=1064&start=105) for alternative interface.
 
 ## Software
 
