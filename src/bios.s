@@ -162,7 +162,7 @@
     WAIT    = 2
     BUSY    = 3
 
-; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
+; phi2 is 0.9216 MHz, 10ms is 9216 or $2400 used by VIA T1/
 
    tick = $2400
 ;--------------------------------------------------------
@@ -238,6 +238,11 @@
 ; for I2C, with 10k pull-up drains 1 mA
     SDA  = (1 << 1)
     SCL  = (1 << 0)
+
+;--------------------------------------------------------
+; VIA port B
+
+; T2 is beeper, IRQ interrupter /;
 
 ;--------------------------------------------------------
 ; alias at page 
@@ -789,6 +794,27 @@ _via_init:
     lda #%01101100            
     sta VIA_DDRB
     rts
+
+;--------------------------------------------------------
+_tune_init:
+    ; setup free-run and interrupt at time-out
+    lda #$55
+    sta VIA_SR
+    lda VIA_ACR
+    and #$7F    ;   %01111111
+    ora #$40    ;   %00100000
+    sta VIA_ACR
+    rts
+
+;--------------------------------------------------------
+_tune_tick:
+    ; store counter
+    lda wrk + 0
+    sta VIA_T2CL
+    lda wrk + 1
+    sta VIA_T2CH
+    rts
+
 ;--------------------------------------------------------
 ;
 ; clock tick, using VIA T1 free run 
@@ -800,23 +826,28 @@ _tick_init:
     sta VIA_T1CL
     lda #>tick
     sta VIA_T1CH
-    ; setup free-run and intrrupt at time-out
+    ; setup free-run and interrupt at time-out
     lda VIA_ACR
     and #$7F    ;   %01111111
     ora #$40    ;   %01000000
     sta VIA_ACR
 
 ;--------------------------------------------------------
-; start tick
+; start tick, zzzz
 _tick_start:    
-    lda #%11000000
+    lda VIA_IER
+    and #$7F   ;    %01111111
+    ora #$60   ;    %01100000
     sta VIA_IER
     rts
 
 ;--------------------------------------------------------
-; stop tick    
+; stop tick, zzzz    
 _tick_stop:
     lda #%10000000
+    lda VIA_IER
+    and #$7F    ;   %01111111
+    ora #$80    ;   %10000000
     sta VIA_IER
     rts
 
