@@ -1,3 +1,4 @@
+;vim: filetype=asm sw=4 ts=4 autoindent expandtab shiftwidth=4 et
 ;--------------------------------------------------------
 ; /*
 ;  *  DISCLAIMER"
@@ -120,6 +121,7 @@
     
 
 .ENDIF
+
 ;--------------------------------------------------------
 ;
 ;   enable some ca65
@@ -162,9 +164,11 @@
     WAIT    = 2
     BUSY    = 3
 
+;--------------------------------------------------------
 ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400 used by VIA T1/
 
-   tick = $2400
+    tick = $2400
+
 ;--------------------------------------------------------
 ; devices
  
@@ -282,7 +286,7 @@ bios_z:  .byte $0	; keep zero
 bios_f:  .byte $0
 bios_g:  .byte $0
 bios_h:  .byte $0
-bios_t:  .byte $0
+yp:  .byte $0
 
 bios_seed:  .word $02A8, $B167
 
@@ -301,6 +305,19 @@ bios_tmp7 = bios_void + $e
 ;--------------------------------------------------------
 
 .byte $DE,$AD,$C0,$DE
+
+;--------------------------------------------------------
+; tunes, for T2 one-shoot, with SR as output
+
+; StarTreck(2), C5, D5, E5, F5, G5, A5, Quindar(2)
+; frequency 2000, 2500, 523, 587, 659, 698, 784, 879
+tune_lo: .byte 115, 184 
+          .byte 43, 157, 233, 220, 235, 131 
+          .byte 75, 124
+tune_hi: .byte 4, 2
+          .byte 41, 10, 2, 6, 5, 8
+          .byte 5, 3
+shift_rs: .byte %01010101, %00110011, %00001111, %10001110
 
 * = $FF00
 .word beep
@@ -807,12 +824,16 @@ _tune_init:
     rts
 
 ;--------------------------------------------------------
+; also restart interrupt
 _tune_tick:
+    sty yp
+    tay
     ; store counter
-    lda wrk + 0
+    lda tune_lo, y
     sta VIA_T2CL
-    lda wrk + 1
+    lda tune_hi, y
     sta VIA_T2CH
+    ldy yp
     rts
 
 ;--------------------------------------------------------

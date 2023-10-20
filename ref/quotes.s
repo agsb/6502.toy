@@ -49,6 +49,8 @@ messages:
     .asciiz "Don’t comment bad code, just rewrite it." 
 
     .asciiz "Crash often, but crash early!"
+ 
+    .asciiz "Quod erat demonstrandum."
 
     .asciiz "If you want to go somewhere, a goto is the best way to get there."
 
