@@ -24,6 +24,9 @@ c)
     --cpu 6502 \
     $2.s 2> err | tee out 
 
+    mv ram.bin $2.ram
+    mv rom.bin $2.rom
+
 # --add-source --create-dep $2.dep \
 # -vm -v \
 # -O0 -W1 -c -T -S \
@@ -43,7 +46,8 @@ l)
     ;;
 
 x)
-    rm $2.obj $2.dep $2.asm $2.map $2.lbl $2.lst out err *.bin *.hx 
+    rm $2.obj $2.dep $2.asm $2.map $2.lbl $2.lst $2.ram $2.rom
+    rm out err *.bin *.hx 
     
     ;;
 
