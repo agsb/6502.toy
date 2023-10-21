@@ -64,6 +64,8 @@ messages:
 
     .asciiz "We've got a problem, HAL."
     
+    .asciiz "Give me a reading on the 1202 alarm ..."
+
     .asciiz "Houston, we've had a problem here." 
 
     .asciiz "So long, and thanks for all the fish."
@@ -76,9 +78,9 @@ messages:
 
     .asciiz "The program is provided as is, without warranty of any kind."
 
-    .asciiz " I'm afraid I can't do that."
+    .asciiz "I'm afraid I can't do that."
     
-    .asciiz " My God, it's full of stars."
+    .asciiz "My God, it's full of stars."
     
     .asciiz "It can only be attributable to human error."
 
