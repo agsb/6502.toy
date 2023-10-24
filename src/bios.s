@@ -759,7 +759,7 @@ getc :
 @acia_rx:
 ; verify
     lda CIA_STAT
-    and #8
+    and #$08
     ; beq @ends
     beq @acia_rx
 ; receive
@@ -775,7 +775,7 @@ putc :
 ; verify
     pha
     lda CIA_STAT
-    and #16
+    and #$10
     ; beq @ends
     beq @acia_tx
 ; transmit
