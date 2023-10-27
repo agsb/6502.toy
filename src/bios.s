@@ -124,19 +124,12 @@
 
 ;--------------------------------------------------------
 ;
-;   enable some ca65
+;   ca65 setup
 ;
-; enable listing
-
-.list on
 
 ; identifiers
 
 .case +
-
-; debug
-
-.debuginfo +
 
 ; enable features
 
