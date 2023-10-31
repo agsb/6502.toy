@@ -77,11 +77,11 @@
     
     for expansion:
     
-    $F080 to $F7FF, free  
+    $F080 to $F0FF, free  
 
 ### ROM
     
-    $F800 to $FFFF  2k ROM 
+    $F100 to $FFFF  3.75k ROM 
 
     At boot:
     
@@ -89,7 +89,7 @@
 
     2. Copy I2C EEPROM to $0400 and jump ($400). 
 
-    4. Shadow BIOS stay at $F800 to $FFFF.
+    4. Shadow BIOS stay at $F100 to $FFFF.
 
 ### Interrupts
 
@@ -301,13 +301,18 @@ bios_tmp7 = bios_void + $e
 
 ; StarTreck(2), C5, D5, E5, F5, G5, A5, Quindar(2)
 ; frequency 2000, 2500, 523, 587, 659, 698, 784, 879
-tune_lo: .byte 115, 184 
-          .byte 43, 157, 233, 220, 235, 131 
-          .byte 75, 124
-tune_hi: .byte 4, 2
-          .byte 41, 10, 2, 6, 5, 8
-          .byte 5, 3
-shift_rs: .byte %01010101, %00110011, %00001111, %10001110
+tune_lo: 
+    .byte 115, 184 
+    .byte 43, 157, 233, 220, 235, 131 
+    .byte 75, 124
+
+tune_hi: 
+    .byte 4, 2
+    .byte 41, 10, 2, 6, 5, 8
+    .byte 5, 3
+
+shift_rs: 
+    .byte %01010101, %00110011, %00001111, %10001110
 
 * = $FF00
 .word beep
@@ -455,11 +460,11 @@ _main:
 ; beep
 beep:
 
-
     rts
 
 ;--------------------------------------------------------
 blink:
+
     rts
 
 ;--------------------------------------------------------
@@ -544,7 +549,7 @@ _post:
     cmp #%10000000  
     bne @fail_tia
 
-.if full_via_test
+.if full_tia_test
 
     lda #$FF
     sta TIA_DDRA
