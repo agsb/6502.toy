@@ -974,8 +974,26 @@ _roulette:
 ;
 
 end_of_code:
-
 .end
+
+;-----------------------------------------------------------------------
+; extras for 6502
+; vide eorBookV1.0.1
+
+; set overflow bit
+setovr_:
+    bit @ends
+@ends:
+    rts
+
+; Z flag is zero in NMOS6502
+nmos_:
+    sed
+    clc
+    lda #$99
+    adc #$01
+    cld
+    rts
 
 ;----------------------------------------------------------------------
 ; just extras
