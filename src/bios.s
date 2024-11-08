@@ -33,6 +33,12 @@
 ;
 ;	minimal bios for 6502.toy
 ;
+;       reserved RAM:
+;       $40 bytes at $000 page zero
+;       $40 bytes at $000 page one
+;       $100 bytes at $400 
+;       $1000 free for users
+;       
 ;--------------------------------------------------------
 .if 0
 
