@@ -316,21 +316,38 @@ shift_rs:
         .byte %01010101, %00110011, %00001111, %10001110
 
 * = $FF00
+
+; misc
 .word void
 .word beep
 .word blink
-.word hitc
-.word getc
-.word putc
 
+.word rand
+.word seed
+
+; usart
+.word getcq     ; test rx ready
+.word putcq     ; text tx ready
+.word getch     ; get a char
+.word putch     ; put a char
+
+; clock
 .word tick_count
 .word tick_start
 .word tick_stop
 .word tick_zero
 
+; ram
 .word ram2ram
-.word rem2ram
-.word ram2rem
+
+; i2c
+.word rem2ram_i2c
+.word ram2rem_i2c
+
+; spi
+.word rem2ram_spi
+.word ram2rem_spi
+
 .word reset
 
 ;--------------------------------------------------------
@@ -475,6 +492,8 @@ blink:
         sta (bios_tmp1), y
         cmp (bios_tmp1), y
         bne @fail
+        lda #$00
+        sta (bios_tmp1), y
         iny
         bne @loop
         clc
@@ -593,19 +612,32 @@ blink:
         bpl @scan_panic
         jmp service_cia
 @scan_panic:
+        ; forgot voids
         jmp bios_end_easy
 
 ;--------------------------------------------------------
  bios_soft_easy:
         ;
         ; from a BRK, a software interrupt
-        ; which always must be $00 $ZZ
-        ; 
+        ; which always must be called as:
+        ;
+        ;       ...
+        ;       brk
+        ;       .byte 00 to FF function code
+
+        ; ; (optional)
+        ;       parameter
+        ;       ...
+        ;       parameter
+        ;       rts
+        ;
+        ;
         ; the PC in stack minus one is the code $ZZ 
         ; for what break was called.
         ;
         ; do something somewhere sometime
         ;
+
         jmp bios_end_easy
 
 ;--------------------------------------------------------
@@ -646,32 +678,33 @@ service_cia:
         rts
 
 ;----------------------------------------------------------------
-;   verify thru 6551, no waits
-;
-hitc :  
-@acia_hit:
+;   verify RX thru 6551, no waits
+;   zero on not
+getcq :  
+@acia_rxq:
 ; verify
         lda CIA_STAT
         and #8
-        beq nak
- ack:
-        ; lda #$01
-        clc
         rts
- nak:
-        ; lda #$00
-        sec
+
+;----------------------------------------------------------------
+;   verify TX thru 6551, no waits
+;   zero on not
+putcq :  
+@acia_txq:
+; verify
+        lda CIA_STAT
+        and #10
         rts
 
 ;----------------------------------------------------------------
 ;   receive a byte thru 6551, waits
 ;
-getc :  
+getch :  
 @acia_rx:
 ; verify
         lda CIA_STAT
         and #$08
-        ; beq @ends
         beq @acia_rx
 ; receive
         lda CIA_RX
@@ -681,13 +714,12 @@ getc :
 ;----------------------------------------------------------------
 ;   transmit a byte thru 6551, waits
 ;
-putc :  
+putch :  
 @acia_tx:
 ; verify
         pha
         lda CIA_STAT
         and #$10
-        ; beq @ends
         beq @acia_tx
 ; transmit
         pla                
