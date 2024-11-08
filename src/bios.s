@@ -34,23 +34,24 @@
 ;	minimal bios for 6502.toy
 ;
 ;--------------------------------------------------------
-.IF 0
+.if 0
 
 # Easy BIOS or MOS for a 6502toy
 
+64bit = +/- 9223372036854775807
+
 ## Memory map
    
-60k    $0000 to $EFFF, RAM
-        
- 2k    $F000 to $F7FF, DEVICES
-
- 2k    $F800 to $FFFF, ROM 
+60k     $0000 to $EFFF, RAM
+ 
+ 4k     $F000 to $FFFF, ROM and $F000 to $F0FF, DEVICES
 
 ### RAM
 
         $0000 to $00FF page zero, hardware registers
             reserved $00-$3F for extras
             reserved $FF-
+
         $0100 to $01FF page one, hardware stack
             reserved $FF-
 
@@ -58,15 +59,15 @@
         
         $0300 to $03FF page tri, list of devices and routines
    
-        $0400 to $0FFF page qua, 3k system buffers and boot
+        $0400 to $0FFF page qua, bios buffers and boot
 
         $1000-$E7FF 56 kb user
 
 #### exclusive ROM
 
-        $F000-$F7FF Devices
+        $F000-$F0FF Devices
 
-        $F800-$FFFF BOOT ROM
+        $F100-$FFFF BOOT ROM
 
 ### DEVICES
 
@@ -98,9 +99,9 @@
 
         At boot:
         
-        1. Copy the NMI/IRQ address to page $0300. 
+        1. Copy the NMI/IRQ address to page $0400. 
 
-        2. Copy I2C EEPROM to $0400 and jump ($400). 
+        2. Copy I2C EEPROM to $1000 and jump ($1000). 
 
         4. Shadow BIOS stay at $F100 to $FFFF.
 
@@ -182,53 +183,56 @@
 
 ;--------------------------------------------------------
 ; terminal usart
-        CIA       =  DEVS+$10    ; The base address of the 6551 ACIA.
-        CIA DATA  =  CIA+0   ; Its data I/O register
-        CIA RX    =  CIA+0   ; Its data I/O register
-        CIA TX    =  CIA+0   ; Its data I/O register
-        CIA STAT  =  CIA+1   ; Its status  register
-        CIA COMM  =  CIA+2   ; Its command  register
-        CIA CTRL  =  CIA+3   ; Its control  register
+        ; The base address of the 6551 ACIA.
+        CIA       =  DEVS + $10    
+        CIA_DATA  =  CIA+0   ; Its data I/O register
+        CIA_RX    =  CIA+0   ; Its data I/O register
+        CIA_TX    =  CIA+0   ; Its data I/O register
+        CIA_STAT  =  CIA+1   ; Its status  register
+        CIA_COMM  =  CIA+2   ; Its command  register
+        CIA_CTRL  =  CIA+3   ; Its control  register
 
 ;--------------------------------------------------------
-; system 
-        VIA        =  DEVS+$20 ; The base address of the 6522 VIA.
-        VIA PB     =  VIA+0    ; Its port B address
-        VIA PA     =  VIA+1    ; Its port A address
-        VIA DDRB   =  VIA+2    ; Its data-direction register for port B
-        VIA DDRA   =  VIA+3    ; Its data-direction register for port A
-        VIA T1CL   =  VIA+4    ; Its timer-1 counter's low  byte
-        VIA T1CH   =  VIA+5    ; Its timer-1 counter's high byte
-        VIA T1LL   =  VIA+6    ; Its timer-1 latcher's low  byte
-        VIA T1LH   =  VIA+7    ; Its timer-1 latcher's high byte
-        VIA T2CL   =  VIA+8    ; Its timer-2 counter's low  byte
-        VIA T2CH   =  VIA+9    ; Its timer-2 counter's high byte
-        VIA SR     =  VIA+10   ; The shift register
-        VIA ACR    =  VIA+11   ; The auxiliary  control register
-        VIA PCR    =  VIA+12   ; The peripheral control register
-        VIA IFR    =  VIA+13   ; The interrupt flag register
-        VIA IER    =  VIA+14   ; The interrupt enable register
-        VIA PAH    =  VIA+15   ; Its port A address no handshake
+; system via
+        ; The base address of the 6522 VIA.
+        VIA        =  DEVS + $20 
+        VIA_PB     =  VIA+0    ; Its port B address
+        VIA_PA     =  VIA+1    ; Its port A address
+        VIA_DDRB   =  VIA+2    ; Its data-direction register for port B
+        VIA_DDRA   =  VIA+3    ; Its data-direction register for port A
+        VIA_T1CL   =  VIA+4    ; Its timer-1 counter's low  byte
+        VIA_T1CH   =  VIA+5    ; Its timer-1 counter's high byte
+        VIA_T1LL   =  VIA+6    ; Its timer-1 latcher's low  byte
+        VIA_T1LH   =  VIA+7    ; Its timer-1 latcher's high byte
+        VIA_T2CL   =  VIA+8    ; Its timer-2 counter's low  byte
+        VIA_T2CH   =  VIA+9    ; Its timer-2 counter's high byte
+        VIA_SR     =  VIA+10   ; The shift register
+        VIA_ACR    =  VIA+11   ; The auxiliary  control register
+        VIA_PCR    =  VIA+12   ; The peripheral control register
+        VIA_IFR    =  VIA+13   ; The interrupt flag register
+        VIA_IER    =  VIA+14   ; The interrupt enable register
+        VIA_PAH    =  VIA+15   ; Its port A address no handshake
 
 ;--------------------------------------------------------
-; user 
-        TIA        =  DEVS+$30 ; The base address of the 6522 VIA.
-        TIA PB     =  TIA+0    ; Its port B address
-        TIA PA     =  TIA+1    ; Its port A address
-        TIA DDRB   =  TIA+2    ; Its data-direction register for port B
-        TIA DDRA   =  TIA+3    ; Its data-direction register for port A
-        TIA T1CL   =  TIA+4    ; Its timer-1 counter's low  byte
-        TIA T1CH   =  TIA+5    ; Its timer-1 counter's high byte
-        TIA T1LL   =  TIA+6    ; Its timer-1 latcher's low  byte
-        TIA T1LH   =  TIA+7    ; Its timer-1 latcher's high byte
-        TIA T2CL   =  TIA+8    ; Its timer-2 counter's low  byte
-        TIA T2CH   =  TIA+9    ; Its timer-2 counter's high byte
-        TIA SR     =  TIA+10   ; The shift register
-        TIA ACR    =  TIA+11   ; The auxiliary  control register
-        TIA PCR    =  TIA+12   ; The peripheral control register
-        TIA IFR    =  TIA+13   ; The interrupt flag register
-        TIA IER    =  TIA+14   ; The interrupt enable register
-        TIA PAH    =  TIA+15   ; Its port A address no handshake
+; user via
+        ; The base address of the 6522 VIA.
+        TIA        =  DEVS + $30 
+        TIA_PB     =  TIA+0    ; Its port B address
+        TIA_PA     =  TIA+1    ; Its port A address
+        TIA_DDRB   =  TIA+2    ; Its data-direction register for port B
+        TIA_DDRA   =  TIA+3    ; Its data-direction register for port A
+        TIA_T1CL   =  TIA+4    ; Its timer-1 counter's low  byte
+        TIA_T1CH   =  TIA+5    ; Its timer-1 counter's high byte
+        TIA_T1LL   =  TIA+6    ; Its timer-1 latcher's low  byte
+        TIA_T1LH   =  TIA+7    ; Its timer-1 latcher's high byte
+        TIA_T2CL   =  TIA+8    ; Its timer-2 counter's low  byte
+        TIA_T2CH   =  TIA+9    ; Its timer-2 counter's high byte
+        TIA_SR     =  TIA+10   ; The shift register
+        TIA_ACR    =  TIA+11   ; The auxiliary  control register
+        TIA_PCR    =  TIA+12   ; The peripheral control register
+        TIA_IFR    =  TIA+13   ; The interrupt flag register
+        TIA_IER    =  TIA+14   ; The interrupt enable register
+        TIA_PAH    =  TIA+15   ; Its port A address no handshake
 
 ;--------------------------------------------------------
 ; VIA port A
@@ -266,66 +270,50 @@
 
 ;--------------------------------------------------------
 ;   at page zero
-;   $E0 to $EF bios reserved 16 bytes
-;   $F0 to $FF bios reserved 16 bytes
 ;
 .segment "ZERO"
 
-* = $040
-bios_tick:      .word $0, $0, $0, $0
-bios_asv:       .byte $0
-bios_ysv:       .byte $0
-bios_xsv:       .byte $0
-bios_psv:       .byte $0
+;--------------------------------------------------------
+; $000 to $03F, reserved for bios
+* = $000
 
+; reserved for extras, eg. monitors, sweet-16, etc
+.res $36, $00
+
+; reserved for bios, 16 bytes
+
+; bios_tick, must be bytes :)
+bios_tick:      .byte $0, $0, $0, $0 ; ~49,7 days in milliseconds
+bios_tune:      .byte $0, $0; 
+; interrupt saves
+bios_a:       .byte $0
+bios_y:       .byte $0
+bios_x:       .byte $0
+bios_p:       .byte $0
+
+;----------------------------------------------------------------------
+; $0100 to $013F, reserved for bios
+* = $0100
+.res $40, $00   ; bios_stack
+
+;----------------------------------------------------------------------
 .segment "CODE"
 
+; reserved for bios 256 bytes
 * = $0400
 
-bios_void:      .word $0, $0
-bios_seed:      .word $0, $0
-
-; used for I2C
-bios_tmp1:      .word $0
-bios_tmp2:      .word $0
-bios_tmp3:      .word $0
-bios_tmp4:      .word $0
-bios_tmp5:      .word $0
-bios_tmp6:      .word $0
-
-;--------------------------------------------------------
-;
-.segment "ONCE"
-
-;--------------------------------------------------------
-
-.byte $DE,$AD,$C0,$DE
-
-;--------------------------------------------------------
-; tunes, for T2 one-shoot, with SR as output
-
-; StarTreck(2), C5, D5, E5, F5, G5, A5, Quindar(2)
-; frequency 2000, 2500, 523, 587, 659, 698, 784, 879
-tune_lo: 
-        .byte 115, 184, 43, 157, 233, 220, 235, 131, 75, 124
-
-tune_hi: 
-        .byte 4, 2, 41, 10, 2, 6, 5, 8, 5, 3
-
-shift_rs: 
-        .byte %01010101, %00110011, %00001111, %10001110
-
-* = $FF00
-
+; functions vectors
 ; misc
 .word void
 .word beep
 .word blink
 
-.word rand
-.word seed
+.word seed      ; change seed
+.word rand      ; return $0000 to $FFFF
+.word roulete   ; return 0 to 36
 
 ; usart
+.word setch     ; init tx rx 19200-8-N-1
 .word getcq     ; test rx ready
 .word putcq     ; text tx ready
 .word getch     ; get a char
@@ -333,9 +321,9 @@ shift_rs:
 
 ; clock
 .word tick_count
-.word tick_start
-.word tick_stop
-.word tick_zero
+.word tick_start        ; start counter
+.word tick_stop         ; stop counter
+.word tick_zero         ; reset counter
 
 ; ram
 .word ram2ram
@@ -348,15 +336,60 @@ shift_rs:
 .word rem2ram_spi
 .word ram2rem_spi
 
+; reset
 .word reset
+
+; variables
+
+bios_void:      .word $0, $0
+bios_seed:      .word $0, $0
+
+bios_from:      .word $0
+bios_into:      .word $0
+bios_many:      .word $0
+bios_work:      .word $0
+
+bios_tmp0:      .word $0
+bios_tmp1:      .word $0
+bios_tmp2:      .word $0
+bios_tmp3:      .word $0
+bios_tmp4:      .word $0
+bios_tmp5:      .word $0
+bios_tmp6:      .word $0
+bios_tmp7:      .word $0
+
+;--------------------------------------------------------
+;
+.segment "ONCE"
+
+.byte $DE,$AD,$C0,$DE
+
+;--------------------------------------------------------
+; tunes, for T2 one-shoot, with SR as output
+
+; StarTreck(2), C5, D5, E5, F5, G5, A5, Quindar(2)
+; frequency 2000, 2500, 523, 587, 659, 698, 784, 879
+
+tune_lo: 
+        .byte 115, 184, 43, 157, 233, 220, 235, 131, 75, 124
+
+tune_hi: 
+        .byte 4, 2, 41, 10, 2, 6, 5, 8, 5, 3
+
+shift_rs: 
+        .byte %01010101, %00110011, %00001111, %10001110
 
 ;--------------------------------------------------------
 ;
 ; some code adapted from 6502.org forum
 ;
 ;--------------------------------------------------------
-; interrups stubs, easy way
-;
+; $F000 to $F03F reserved for devices
+* = F000
+
+;--------------------------------------------------------
+; $F100 to $FFFF bios
+;       nop for align
 * = $F100
 
  jump_nmi:
@@ -372,6 +405,8 @@ shift_rs:
         jmp (rst_init)
 
 ; void nmi, irq at boot
+
+ jump_void:
 
  nmi_init:
 
@@ -393,8 +428,8 @@ init:
         ;0x0 wise
         cld
         
-        ; prepare stack
-        ldx #$FF
+        ; prepare bios stack
+        ldx #$40
         txs
 
         ; setup acia one
@@ -406,11 +441,14 @@ init:
         ; setup via two 
         jsr tia_init
 
+        ; setup tune
+        jsr tune_init
+
         ; setup tick
         jsr tick_init
 
-        ; copy REM to RAM
-        jsr copy_eep     
+        ; alive
+        jsr beep
 
         ; post 
         jsr post
@@ -418,7 +456,13 @@ init:
         ; alive
         jsr beep
 
-        ; prepare interrupts
+        ; copy REM to RAM
+        jsr copy_eep     
+
+        ; alive
+        jsr beep
+
+        ; interrupt vectors
         
         lda #<bios_nmi
         sta NMI_VEC+0
@@ -442,6 +486,7 @@ init:
         sta bios_seed + 3
 
         ; enable interrupts
+
         cli
 
         ; there we go....
@@ -463,37 +508,39 @@ init:
 ;
 ;       beep audio
 beep:
-
+        ; zzzz
         rts
 
 ;--------------------------------------------------------
 ;       LED blinks
 blink:
-
+        ; zzzz
         rts
 
 ;--------------------------------------------------------
 ; power on self test
  post:
         clc
-@test ram:
+@test_ram:
         lda #$00
         sty
         stx
         sta bios_tmp1 + 0
-        lda #$04 
+        lda #$20 
         sta bios_tmp1 + 1
 @loop:
         lda #$55
         sta (bios_tmp1), y
         cmp (bios_tmp1), y
-        bne @fail 
+        bne @fail_ram 
         lda #$AA
         sta (bios_tmp1), y
         cmp (bios_tmp1), y
-        bne @fail
+        bne @fail_ram
         lda #$00
         sta (bios_tmp1), y
+        cmp (bios_tmp1), y
+        bne @fail_ram
         iny
         bne @loop
         clc
@@ -502,23 +549,32 @@ blink:
         sta bios_tmp1+1
         cmp #$00
         bne @loop  
-@ends:    
+        beq @test_via
+
+@fail_ram:
+        ldx #$01
+        bne @fail
 
 @test_via:
         lda VIA_IER
         cmp #%10000000  
-        bne @fail 
+        beq @test_tia 
+
+@fail_via:
+        ldx #$02
+        bne @fail
 
 @test_tia:
         lda TIA_IER
         cmp #%10000000  
-        bne @fail 
-@okey:
-        clc
-        rts
+        beq @okey
+
+@fail_via:
+        ldx #$04
+        bne @fail
 
 @fail:
-        sec
+@okey:
         rts
 
 ;--------------------------------------------------------
@@ -557,10 +613,14 @@ blink:
 
 ;========================================================
 ; NMI, counts ticks
+;       bios_tick in zero page
  bios_nmi:
- bios_tick:
-        cld
-        bit VIA_T1CL
+ bios_clock:
+        ; for safe
+        sei 
+        cld                
+        bit VIA_T1CL            ; clear bit
+        ; cascate counter
         inc bios_tick+0
         bne @ends
         inc bios_tick+1
@@ -569,32 +629,63 @@ blink:
         bne @ends
         inc bios_tick+3
 @ends:
+        cli
         rti
 
 ;======================================================================
 ; IRQ|BRK, handler
 ; easy minimal 
+;--------------------------------------------------------
+ bios_soft_ends:
+        ldy bios_y
+        ldx bios_x
+ bios_hard_ends:
+        lda bios_a
+        cli
+        rti
+
+;--------------------------------------------------------
  bios_irq:
  bios_init_easy:
         sei
         cld
         sta bios_a
-        stx bios_x
-        sty bios_y
 @easy:
         pla
         pha
         and #$10
-        bne bios_soft_easy
         beq bios_hard_easy
+        ; fall througth
+        ; bne bios_soft_easy
 
 ;--------------------------------------------------------
- bios_end_easy:
-        ldy bios_y
-        ldx bios_x
-        lda bios_a
-        cli
-        rti
+ bios_soft_easy:
+        ;
+        ; from a BRK, a software interrupt
+        ; which always called as:
+        ;
+        ;       ...
+        ;       brk
+        ;       .byte 00 to FF bios function code
+
+        ; ; (optional)
+        ;       parameter
+        ;       ...
+        ;       parameter
+        ;       rts
+        ;
+        ;
+        ; the PC in stack minus one is the code $ZZ 
+        ; for what break was called.
+        ;
+        ; do something somewhere sometime
+        ;
+        ; general software interrupt service
+
+        stx bios_x
+        sty bios_y
+
+        jmp bios_soft_ends
 
 ;--------------------------------------------------------
  bios_hard_easy:
@@ -613,63 +704,41 @@ blink:
         jmp service_cia
 @scan_panic:
         ; forgot voids
-        jmp bios_end_easy
-
-;--------------------------------------------------------
- bios_soft_easy:
-        ;
-        ; from a BRK, a software interrupt
-        ; which always must be called as:
-        ;
-        ;       ...
-        ;       brk
-        ;       .byte 00 to FF function code
-
-        ; ; (optional)
-        ;       parameter
-        ;       ...
-        ;       parameter
-        ;       rts
-        ;
-        ;
-        ; the PC in stack minus one is the code $ZZ 
-        ; for what break was called.
-        ;
-        ; do something somewhere sometime
-        ;
-
-        jmp bios_end_easy
+        pha
+        jmp bios_hard_ends
 
 ;--------------------------------------------------------
 ;    attend interrupt 
 service_via:
         pha
         lda #$7F
-        sta VIA IFR;
-        jmp bios_end_easy
+        sta VIA_IFR;
+        jmp bios_hard_ends
 
 ;--------------------------------------------------------
 ;    attend interrupt 
 service_tia:
         pha
         lda #$7F
-        sta TIA IFR;
-        jmp bios_end_easy
+        sta TIA_IFR;
+        jmp bios_hard_ends
 
 ;--------------------------------------------------------
 ;    attend interrupt 
 service_cia:
-        jmp bios_end_easy
+        pha
+        jmp bios_hard_ends
 
 ;======================================================================
 ;   acia init, configures 19200,N,8,1 default 6551
 ;
- acia_init:
+setch:
+acia_init:
         ; reset CIA
         lda #0
         sta CIA_STAT
         ; %0001 1110 =  9600 baud, external receiver, 8 bit , 1 stop bit
-        ; %0001 1111 = 19200 baud, external receiver, 8 bit , 1 stop bit
+        %0001 1111 = 19200 baud, external receiver, 8 bit , 1 stop bit
         lda #$1F     
         sta CIA_CTRL
         ; %0000 1011 = no parity, normal mode, RTS low, INT disable, DTR low 
@@ -680,9 +749,9 @@ service_cia:
 ;----------------------------------------------------------------
 ;   verify RX thru 6551, no waits
 ;   zero on not
-getcq :  
-@acia_rxq:
-; verify
+getcq:  
+acia_rxq:
+        ; verify
         lda CIA_STAT
         and #8
         rts
@@ -690,9 +759,9 @@ getcq :
 ;----------------------------------------------------------------
 ;   verify TX thru 6551, no waits
 ;   zero on not
-putcq :  
-@acia_txq:
-; verify
+putcq:  
+acia_txq:
+        ; verify
         lda CIA_STAT
         and #10
         rts
@@ -700,13 +769,13 @@ putcq :
 ;----------------------------------------------------------------
 ;   receive a byte thru 6551, waits
 ;
-getch :  
-@acia_rx:
-; verify
+getch:  
+acia_rx:
+        ; verify
         lda CIA_STAT
         and #$08
         beq @acia_rx
-; receive
+        ; receive
         lda CIA_RX
         clc
         rts
@@ -714,30 +783,31 @@ getch :
 ;----------------------------------------------------------------
 ;   transmit a byte thru 6551, waits
 ;
-putch :  
-@acia_tx:
-; verify
+putch:  
+acia_tx:
+        ; verify
         pha
         lda CIA_STAT
         and #$10
         beq @acia_tx
-; transmit
+        ; transmit
         pla                
         sta CIA_TX 
         clc
         rts
 
-.IF 0
+;--------------------------------------------------------
+; internal delay
 delay:
+        txa
         ldx #$FF
 @delay:
         nop
         nop
         dex
         bne @delay
+        tax
         rts
-.ENDIF
-
 
 ;--------------------------------------------------------
 ;   via init, I2C, SPI, LCD, KBD, 
@@ -772,12 +842,13 @@ delay:
 ;--------------------------------------------------------
 ; also restart interrupt
  tune_tick:
+ ; zzzz
         sty yp
         tay
         ; store counter
-        lda tune_lo, y
+        lda (tune_lsb), y
         sta VIA_T2CL
-        lda tune_hi, y
+        lda (tune_msb), y
         sta VIA_T2CH
         ldy yp
         rts
