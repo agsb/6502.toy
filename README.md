@@ -1,4 +1,4 @@
-# A 6502toy
+# A 6502 toy
 
 (this file is a stub)
 
