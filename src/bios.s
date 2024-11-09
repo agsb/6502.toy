@@ -1,4 +1,4 @@
-;vim: filetype=asm sw=4 ts=4 autoindent expandtab shiftwidth=4 et
+; vim: filetype=asm sw=8 ts=8 autoindent expandtab shiftwidth=8 et
 ;-----------------------------------------------------------------------
 ; Copyright (c) 2023, Alvaro Gomes Sobral Barcellos
 ; All rights reserved.
@@ -35,112 +35,111 @@
 ;
 ;       reserved RAM:
 ;       $40 bytes at $000 page zero
-;       $40 bytes at $000 page one
+;       $40 bytes at $100 page one
 ;       $100 bytes at $400 
 ;       $1000 free for users
 ;       
 ;--------------------------------------------------------
-.if 0
-
-# Easy BIOS or MOS for a 6502toy
-
-64bit = +/- 9223372036854775807
-
-## Memory map
-   
-60k     $0000 to $EFFF, RAM
- 
- 4k     $F000 to $FFFF, ROM and $F000 to $F0FF, DEVICES
-
-### RAM
-
-        $0000 to $00FF page zero, hardware registers
-            reserved $00-$3F for extras
-            reserved $FF-
-
-        $0100 to $01FF page one, hardware stack
-            reserved $FF-
-
-        $0200 to $02FF page two, bios buffers
-        
-        $0300 to $03FF page tri, list of devices and routines
-   
-        $0400 to $0FFF page qua, bios buffers and boot
-
-        $1000-$E7FF 56 kb user
-
-#### exclusive ROM
-
-        $F000-$F0FF Devices
-
-        $F100-$FFFF BOOT ROM
-
-### DEVICES
-
-        mapped onboard:
-  
-        $F000   bios exclusive hardware
-        
-        $F010   bios device 01, acia 6551, USART TERMINAL
-        
-        $F020   bios device 02, via 6522, TICK, I2C, SPI, LCD, KBD
-        
-        $F030   bios device 03, via 6522, user
-        
-        $F040   external device 04
-        
-        $F050   external device 05
-        
-        $F060   external device 06
-        
-        $F070   external device 07
-        
-        for expansion:
-        
-        $F080 to $F0FF, free  
-
-### ROM
-        
-        $F100 to $FFFF  3.75k ROM 
-
-        At boot:
-        
-        1. Copy the NMI/IRQ address to page $0400. 
-
-        2. Copy I2C EEPROM to $1000 and jump ($1000). 
-
-        4. Shadow BIOS stay at $F100 to $FFFF.
-
-### Interrupts
-
-        the clock tick done by VIA T1 is the only NMI of 6502
-        
-### Best Practices
-
-        - On return, the carry flag is 0 for Ok.
-
-        - callee saves registers.
-
-        - do not make recursive routines.
-
-        - using RAM for random access memory, as static ram with read and write.
-
-        - using ROM for read only memory, as flash eeprom parallel. NO WRITE.
-        
-        - using REM for regular eeprom memory, as flash eeprom with I2C protocol.
-
-### Todo
-
-        - a POST routine, power on self test, with beep/blink diagnostics
-
-        - check size of RAM, ROM, in 4 kb blocks, $0000..$F000
-        
-        - check I2C, REM, LCD, 
-        
-        - responses from ACIA, VIA, TIA 	
-
-.ENDIF
-
+;
+;# Easy BIOS or MOS for a 6502toy
+;
+;64bit = +/- 9223372036854775807
+;
+;## Memory map
+;   
+;60k     $0000 to $EFFF, RAM
+; 
+; 4k     $F000 to $FFFF, ROM and $F000 to $F0FF, DEVICES
+;
+;### RAM
+;
+;        $0000 to $00FF page zero, hardware registers
+;            reserved $00-$3F for extras
+;            reserved $FF-
+;
+;        $0100 to $01FF page one, hardware stack
+;            reserved $FF-
+;
+;        $0200 to $02FF page two, bios buffers
+;        
+;        $0300 to $03FF page tri, list of devices and routines
+;   
+;        $0400 to $0FFF page qua, bios buffers and boot
+;
+;        $1000-$E7FF 56 kb user
+;
+;#### exclusive ROM
+;
+;        $F000-$F0FF Devices
+;
+;        $F100-$FFFF BOOT ROM
+;
+;### DEVICES
+;
+;        mapped onboard:
+;  
+;        $F000   bios exclusive hardware
+;        
+;        $F010   bios device 01, acia 6551, USART TERMINAL
+;        
+;        $F020   bios device 02, via 6522, TICK, I2C, SPI, LCD, KBD
+;        
+;        $F030   bios device 03, via 6522, user
+;        
+;        $F040   external device 04
+;        
+;        $F050   external device 05
+;        
+;        $F060   external device 06
+;        
+;        $F070   external device 07
+;        
+;        for expansion:
+;        
+;        $F080 to $F0FF, free  
+;
+;### ROM
+;        
+;        $F100 to $FFFF  3.75k ROM 
+;
+;        At boot:
+;        
+;        1. Copy the NMI/IRQ address to page $0400. 
+;
+;        2. Copy I2C EEPROM to $1000 and jump ($1000). 
+;
+;        4. Shadow BIOS stay at $F100 to $FFFF.
+;
+;### Interrupts
+;
+;        the clock tick done by VIA T1 is the only NMI of 6502
+;        
+;### Best Practices
+;
+;        - On return, the carry flag is 0 for Ok.
+;
+;        - callee saves registers.
+;
+;        - do not make recursive routines.
+;
+;        - using RAM for random access memory, as static ram with read and write.
+;
+;        - using ROM for read only memory, as flash eeprom parallel. NO WRITE.
+;        
+;        - using REM for regular eeprom memory, as flash eeprom with I2C protocol.
+;
+;### Todo
+;
+;        - a POST routine, power on self test, with beep/blink diagnostics
+;
+;        - check size of RAM, ROM, in 4 kb blocks, $0000..$F000
+;        
+;        - check I2C, REM, LCD, 
+;        
+;        - responses from ACIA, VIA, TIA 	
+;
+;.ENDIF
+;
 ;--------------------------------------------------------
 ;
 ;   ca65 setup
@@ -152,15 +151,15 @@
 
 ; enable features
 
-.feature c comments
+.feature c_comments
 
-.feature string escapes
+.feature string_escapes
 
-.feature org per seg
+.feature org_per_seg
 
-.feature dollar is pc
+.feature dollar_is_pc
 
-.feature pc assignment
+.feature pc_assignment
 
 ; enable 6502 mode
 
@@ -177,11 +176,9 @@
         BUSY    = 3
 
 ;--------------------------------------------------------
-; phi2 is 0.9216 MHz, 10ms is 9216 or $2400 used by VIA T1/
-; depends directly of phi2
+; phi2 is 0.9216 MHz, 10ms is 9216 or $2400 
+; used by VIA T1 which depends directly of phi2
 ;
-        tick = $2400
-
 ;--------------------------------------------------------
 ; devices
  
@@ -284,26 +281,42 @@
 * = $000
 
 ; reserved for extras, eg. monitors, sweet-16, etc
-.res $36, $00
+.res $30, $00
 
 ; reserved for bios, 16 bytes
 
 ; bios_tick, must be bytes :)
 bios_tick:      .byte $0, $0, $0, $0 ; ~49,7 days in milliseconds
-bios_tune:      .byte $0, $0; 
-; interrupt saves
-bios_a:       .byte $0
-bios_y:       .byte $0
-bios_x:       .byte $0
-bios_p:       .byte $0
+
+; bios service interrupt saves, BRK
+bios_f:         .byte $0
+bios_s:         .byte $0
+bios_a:         .byte $0
+bios_p:         .byte $0
+bios_y:         .byte $0
+bios_x:         .byte $0
+
+; for I2C, SPI, RAM, REM, ROM
+bios_from:       .word $0
+bios_into:       .word $0
+bios_many:       .word $0
+
+;
+;       $040 to $0FF for user
+;
 
 ;----------------------------------------------------------------------
 ; $0100 to $013F, reserved for bios
 * = $0100
 .res $40, $00   ; bios_stack
 
+;
+;       $140 to $1FF    for user
+;
+
 ;----------------------------------------------------------------------
 .segment "CODE"
+
 
 ; reserved for bios 256 bytes
 * = $0400
@@ -312,11 +325,11 @@ bios_p:       .byte $0
 ; misc
 .word void
 .word beep
-.word blink
+.word tone_play ; lsb and msb ????
+.word blink     ; lsb and msb ????
 
-.word seed      ; change seed
-.word rand      ; return $0000 to $FFFF
-.word roulete   ; return 0 to 36
+.word roulette  ; change seed
+.word random    ; return $0000 to $FFFF
 
 ; usart
 .word setch     ; init tx rx 19200-8-N-1
@@ -326,7 +339,6 @@ bios_p:       .byte $0
 .word putch     ; put a char
 
 ; clock
-.word tick_count
 .word tick_start        ; start counter
 .word tick_stop         ; stop counter
 .word tick_zero         ; reset counter
@@ -343,17 +355,20 @@ bios_p:       .byte $0
 .word ram2rem_spi
 
 ; reset
-.word reset
+.word init
+
+; tia init
+.word bios_tia_init
+.word bios_tia_service
 
 ; variables
 
 bios_void:      .word $0, $0
-bios_seed:      .word $0, $0
+bios_seed:      .byte $0, $0, $0, $0
 
-bios_from:      .word $0
-bios_into:      .word $0
-bios_many:      .word $0
-bios_work:      .word $0
+bios_tone:      .byte $0, $0 
+bios_beat:      .byte $0, $0 
+bios_acia:      .byte $0, $0
 
 bios_tmp0:      .word $0
 bios_tmp1:      .word $0
@@ -365,21 +380,26 @@ bios_tmp6:      .word $0
 bios_tmp7:      .word $0
 
 ;--------------------------------------------------------
+* = $047F 
+bios_buffer:    .byte $0
+
+
+;--------------------------------------------------------
 ;
 .segment "ONCE"
 
 .byte $DE,$AD,$C0,$DE
 
 ;--------------------------------------------------------
-; tunes, for T2 one-shoot, with SR as output
+; tones, for T2 one-shoot, with SR as output
 
 ; StarTreck(2), C5, D5, E5, F5, G5, A5, Quindar(2)
 ; frequency 2000, 2500, 523, 587, 659, 698, 784, 879
 
-tune_lo: 
+tone_lsb: 
         .byte 115, 184, 43, 157, 233, 220, 235, 131, 75, 124
 
-tune_hi: 
+tone_msb: 
         .byte 4, 2, 41, 10, 2, 6, 5, 8, 5, 3
 
 shift_rs: 
@@ -391,7 +411,7 @@ shift_rs:
 ;
 ;--------------------------------------------------------
 ; $F000 to $F03F reserved for devices
-* = F000
+* = $F000
 
 ;--------------------------------------------------------
 ; $F100 to $FFFF bios
@@ -420,6 +440,23 @@ shift_rs:
 
         rti
 
+; i2c
+
+rem2ram_i2c:
+
+ram2rem_i2c:
+
+; spi
+
+rem2ram_spi:
+
+ram2rem_spi:
+
+; copy
+
+ram2ram:
+        rts
+
 ;--------------------------------------------------------
 ; reset 
 ;--------------------------------------------------------
@@ -438,6 +475,20 @@ init:
         ldx #$40
         txs
 
+        ; alive
+        jsr beep
+
+        ; post 
+        jsr post
+
+        ; %0001 1111 = 19200 baud, external receiver, 8 bit, 1 stop bit
+        lda #$1F     
+        sta bios_acia + 0
+        
+        ; %0000 1011 = no parity, normal mode, RTS low, INT disable, DTR low 
+        lda #$0B     
+        sta bios_acia + 1
+
         ; setup acia one
         jsr acia_init
 
@@ -447,17 +498,8 @@ init:
         ; setup via two 
         jsr tia_init
 
-        ; setup tune
-        jsr tune_init
-
-        ; setup tick
-        jsr tick_init
-
-        ; alive
-        jsr beep
-
-        ; post 
-        jsr post
+        ; setup tone
+        jsr tone_init
 
         ; alive
         jsr beep
@@ -491,6 +533,16 @@ init:
         lda #$B1
         sta bios_seed + 3
 
+        ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
+
+        lda #$00
+        sta bios_beat + 0
+        lda #$24
+        sta bios_beat + 1
+
+        ; setup tick
+        jsr tick_init
+
         ; enable interrupts
 
         cli
@@ -506,21 +558,27 @@ init:
 ;--------------------------------------------------------
 ; BEEP FREQ DIVIDER = 461	; 1 KHz @ 921,6 kHz 
 ; 1 kHz is the censor TV classic
+;
 ; Quindar tones 2525 Hz start, 2475 Hz stop
 ; Sequences of 1% error
 ; frequencies D5 523, D5 587, E5 659, F5 698, G5 784, A5 880 
-; for 460,800 kHz beat on/off
+; for 460, 800 kHz beat on/off
 ; counters D5 881, D5 785, E5 699, F5 660, G5 588, A5 524 
 ;
+; zzzz
+void:
+
 ;       beep audio
 beep:
-        ; zzzz
-        rts
 
 ;--------------------------------------------------------
 ;       LED blinks
 blink:
-        ; zzzz
+
+bios_tia_init:
+
+bios_tia_service:
+
         rts
 
 ;--------------------------------------------------------
@@ -529,30 +587,30 @@ blink:
         clc
 @test_ram:
         lda #$00
-        sty
-        stx
+        tay
+        tax
         sta bios_tmp1 + 0
         lda #$20 
         sta bios_tmp1 + 1
 @loop:
         lda #$55
-        sta (bios_tmp1), y
-        cmp (bios_tmp1), y
+        sta bios_tmp1, y
+        cmp bios_tmp1, y
         bne @fail_ram 
         lda #$AA
-        sta (bios_tmp1), y
-        cmp (bios_tmp1), y
+        sta bios_tmp1, y
+        cmp bios_tmp1, y
         bne @fail_ram
         lda #$00
-        sta (bios_tmp1), y
-        cmp (bios_tmp1), y
+        sta bios_tmp1, y
+        cmp bios_tmp1, y
         bne @fail_ram
         iny
         bne @loop
         clc
-        lda bios_tmp1+1
+        lda bios_tmp1 + 1
         adc #$10
-        sta bios_tmp1+1
+        sta bios_tmp1 + 1
         cmp #$00
         bne @loop  
         beq @test_via
@@ -575,7 +633,7 @@ blink:
         cmp #%10000000  
         beq @okey
 
-@fail_via:
+@fail_tia:
         ldx #$04
         bne @fail
 
@@ -602,19 +660,19 @@ blink:
         ; use device 0 and sense read
         ; copy $E000 bytes from $1000 REM to $1000 RAM
         lda #$00
-        sta bios_tmp1+0
-        sta bios_tmp2+0
-        sta bios_tmp3+0
+        sta bios_from + 0
+        sta bios_into + 0
+        sta bios_many + 0
         lda #$10
-        sta bios_tmp1+1
-        sta bios_tmp2+1
+        sta bios_from + 1
+        sta bios_into + 1
         lda #$E0
-        sta bios_tmp3+1
+        sta bios_many + 1
         lda #%01010000	; hardcoded for 24LC512 at 000, will be << 1 
-        sta bios_tmp4+0
+        sta bios_tmp4 + 0
         lda #$01
-        sta bios_tmp4+1
-        jsr rem2ram
+        sta bios_tmp4 + 1
+        jsr rem2ram_i2c
         rts
 
 ;========================================================
@@ -744,7 +802,7 @@ acia_init:
         lda #0
         sta CIA_STAT
         ; %0001 1110 =  9600 baud, external receiver, 8 bit , 1 stop bit
-        %0001 1111 = 19200 baud, external receiver, 8 bit , 1 stop bit
+        ; %0001 1111 = 19200 baud, external receiver, 8 bit , 1 stop bit
         lda #$1F     
         sta CIA_CTRL
         ; %0000 1011 = no parity, normal mode, RTS low, INT disable, DTR low 
@@ -776,7 +834,7 @@ acia_txq:
 ;   receive a byte thru 6551, waits
 ;
 getch:  
-acia_rx:
+@acia_rx:
         ; verify
         lda CIA_STAT
         and #$08
@@ -790,7 +848,7 @@ acia_rx:
 ;   transmit a byte thru 6551, waits
 ;
 putch:  
-acia_tx:
+@acia_tx:
         ; verify
         pha
         lda CIA_STAT
@@ -832,10 +890,10 @@ delay:
         sta VIA_DDRA
         lda #%01101100            
         sta VIA_DDRB
-        rts
+        ; fall throught
 
 ;--------------------------------------------------------
- tune_init:
+tone_init:
         ; setup free-run and interrupt at time-out
         lda #$55
         sta VIA_SR
@@ -847,34 +905,35 @@ delay:
 
 ;--------------------------------------------------------
 ; also restart interrupt
- tune_tick:
- ; zzzz
-        sty yp
+ tone_play:
+        sty bios_y
         tay
         ; store counter
-        lda (tune_lsb), y
+        lda tone_lsb, y
         sta VIA_T2CL
-        lda (tune_msb), y
+        lda tone_msb, y
         sta VIA_T2CH
-        ldy yp
+        ldy bios_y
         rts
 
 ;--------------------------------------------------------
 ;
-; clock tick, using VIA T1 free run 
+; clock beat, using VIA T1 free run 
 ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
 ;
  tick_init:
         ; store counter
-        lda #<tick
+        lda bios_beat + 0
         sta VIA_T1CL
-        lda #>tick
+        lda bios_beat + 1
         sta VIA_T1CH
+
         ; setup free-run and interrupt at time-out
         lda VIA_ACR
         and #$7F    ;   %01111111
         ora #$40    ;   %01000000
         sta VIA_ACR
+        ; fall throught
 
 ;--------------------------------------------------------
 ; start tick, zzzz
@@ -888,7 +947,7 @@ delay:
 ;--------------------------------------------------------
 ; stop tick, zzzz    
  tick_stop:
-        lda #%10000000
+        ; lda #%10000000
         lda VIA_IER
         and #$7F    ;   %01111111
         ora #$80    ;   %10000000
@@ -897,7 +956,7 @@ delay:
 
 ;--------------------------------------------------------
 ; clear tick    
- tick_zero:
+tick_zero:
         jsr tick_stop
         lda #$00
         sta bios_tick+0
@@ -909,7 +968,8 @@ delay:
 
 ;--------------------------------------------------------
 ;   tia init, extra VIA, future use
- tia_init:
+tia_init:
+        ; jmp (tia_init_user)
         rts            
 
 ;----------------------------------------------------------------------
@@ -939,51 +999,72 @@ delay:
 ;.word  $BE0B, $B303, $6462, $0E4C, $3D24
 ;
 random:
+        
+        pha
+	
+        lda bios_seed + 1
+        pha
+	eor bios_seed + 0
+	adc bios_seed + 0
+	sta bios_seed + 1
+        pla
+	sta bios_seed + 0
 
-	lda bios seed+1
-	eor bios seed+0
-	adc bios seed+0
-	ldy bios seed+1
-	sta bios seed+1
-	sty bios seed+0
+	lda bios_seed + 2
+        pha
+	eor bios_seed + 1
+	adc bios_seed + 1
+	sta bios_seed + 2
+        pla
+	sta bios_seed + 1
 
-.if 0
+	lda bios_seed + 3
+        pha
+	eor bios_seed + 2
+	adc bios_seed + 2
+	sta bios_seed + 3
+        pla
+	sta bios_seed + 2
 
-	lda bios seed+2
-	eor bios seed+1
-	adc bios seed+1
-	ldy bios seed+2
-	sta bios seed+2
-	sty bios seed+1
+	lda bios_seed + 0
+        pha
+	eor bios_seed + 3
+	adc bios_seed + 3
+	sta bios_seed + 0
+        pla
+	sta bios_seed + 3
 
-	lda bios seed+3
-	eor bios seed+2
-	adc bios seed+2
-	ldy bios seed+3
-	sta bios seed+3
-	sty bios seed+2
-
+        pla
 	rts
 
-.endif 
-
 ;----------------------------------------------------------------------
-rolette:
-        jsr random
-        and #%00111111
-        adc #10
-        ror 
-        tay
-        lda roulette , y
-        rts
-        
 ;0-32-15-19-04-21-02-25-17-34-06-27-13-36-11-30-08-23-10
 ; -05-24-16-33-01-20-14-31-09-22-18-29-07-28-12-35-03-26
+roulette:
+        pha
+        tya
+        pha
+@loop:
+        jsr random
+        lda bios_seed + 0
+        cmp #$93        ; valid 0 to 147, 148/256 repeat ~42%
+        bpl @loop
+        ror 
+        ror 
+        tay
+        lda roulette_wheel, y
+        sta bios_seed + 0
+        pla
+        tay
+        pla
+        rts
+        
+roulette_wheel:
 
- roulette:
-.byte 32,15,19,04,21,02, 25,17,34,06,27,13, 36,11,30,08,23,10
-.byte 05,24,16,33,01,20, 14,31,09,22,18,29, 07,28,12,35,03,26
 .byte 00
+.byte 32, 15, 19, 04, 21, 02, 25, 17, 34, 06, 27, 13 
+.byte 36, 11, 30, 08, 23, 10, 05, 24, 16, 33, 01, 20
+.byte 14, 31, 09, 22, 18, 29, 07, 28, 12, 35, 03, 26
 
 ;--------------------------------------------------------
 ; at $FFFA
