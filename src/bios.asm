@@ -60,11 +60,13 @@
 ;        $0100 to $01FF page one, hardware stack
 ;            reserved $FF-
 ;
-;        $0200 to $02FF page two, bios buffers
+;        $0200 page two, free 
 ;        
-;        $0300 to $03FF page tri, list of devices and routines
+;        $0300 page tri, free
 ;   
-;        $0400 to $0FFF page qua, bios buffers and boot
+;        $0400 page qua, 
+;
+;        $0E00
 ;
 ;        $1000-$E7FF 56 kb user
 ;
@@ -323,43 +325,46 @@ bios_many:       .word $0
 
 ; functions vectors
 ; misc
-.word void
-.word beep
-.word tone_play ; lsb and msb ????
-.word blink     ; lsb and msb ????
+.addr void
+.addr beep
+.addr tone_play ; lsb and msb ????
+.addr blink     ; lsb and msb ????
 
-.word roulette  ; change seed
-.word random    ; return $0000 to $FFFF
+
+;.addr seed      ; change seed
+;.addr rand      ; return $0000 to $FFFF
+.addr roulette  ; ireturn 0 to 37
 
 ; usart
-.word setch     ; init tx rx 19200-8-N-1
-.word getcq     ; test rx ready
-.word putcq     ; text tx ready
-.word getch     ; get a char
-.word putch     ; put a char
+.addr setch     ; init tx rx 19200-8-N-1
+.addr getcq     ; test rx ready
+.addr putcq     ; text tx ready
+.addr getch     ; get a char
+.addr putch     ; put a char
 
 ; clock
-.word tick_start        ; start counter
-.word tick_stop         ; stop counter
-.word tick_zero         ; reset counter
+.addr tick_start        ; start counter
+.addr tick_stop         ; stop counter
+.addr tick_zero         ; reset counter
+;.addr tick_value        ; return counter
 
 ; ram
-.word ram2ram
+.addr ram2ram
 
 ; i2c
-.word rem2ram_i2c
-.word ram2rem_i2c
+.addr rem2ram_i2c
+.addr ram2rem_i2c
 
 ; spi
-.word rem2ram_spi
-.word ram2rem_spi
+.addr rem2ram_spi
+.addr ram2rem_spi
 
 ; reset
-.word init
+.addr init
 
 ; tia init
-.word bios_tia_init
-.word bios_tia_service
+.addr bios_tia_init
+.addr bios_tia_service
 
 ; variables
 
@@ -745,6 +750,7 @@ bios_tia_service:
         ; do something somewhere sometime
         ;
         ; general software interrupt service
+
 
         stx bios_x
         sty bios_y
