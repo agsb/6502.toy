@@ -45,12 +45,21 @@ label:
     bne * ;
 
 ;---------------------------------------------------------------------
-    ; indirect from a list    
+    ; indirect from a list, all address must be minus one
     lda list+1,x
     pha
-    lda list+0,x
+    lda list+0,x 
     pha
     rts
+
+;---------------------------------------------------------------------
+    ; indirect from a list, all address absolute    
+    lda list+1,x
+    pha
+    lda list+0,x 
+    pha
+    php
+    rti
 
 ;---------------------------------------------------------------------
     ; where I am

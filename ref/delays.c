@@ -42,7 +42,7 @@ for (dy=1; dy < 256; dy++) {
 
     p = (double) m * clock / 1000.0;
 
-	printf (" %7.3lf ms %4d %4d\n", p, dx, dy);
+	printf (" %7.5lf ms %4d %4d\n", p, dx, dy);
 
 } } 
 

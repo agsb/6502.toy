@@ -5,3 +5,10 @@ collected just for learn.
 
 Patience.
 
+### links
+
+https://hackaday.io/project/174867-reading-sd-cards-on-a-65026522-computer
+
+https://github.com/gfoot/sdcard6502/blob/master/README.md
+
+http://www.bigmessowires.com/bmow1/
