@@ -1,0 +1,363 @@
+ca65 V2.19 - Git db178e55f
+Main file   : main.s
+Current file: main.s
+
+000000r 1               ; vim: filetype=asm sw=8 ts=8 autoindent expandtab shiftwidth=8 et
+000000r 1               ;-----------------------------------------------------------------------
+000000r 1               ; Copyright (c) 2023, Alvaro Gomes Sobral Barcellos
+000000r 1               ; All rights reserved.
+000000r 1               ;
+000000r 1               ; Redistribution and use in source and binary forms, with or without
+000000r 1               ; modification, are permitted provided that the following conditions
+000000r 1               ; are met:
+000000r 1               ;
+000000r 1               ; 1. Redistributions of source code must retain the above copyright
+000000r 1               ;    notice, this list of conditions and the following disclaimer.
+000000r 1               ;
+000000r 1               ; 2. Redistributions in binary form must reproduce the above copyright
+000000r 1               ;    notice, this list of conditions and the following disclaimer in
+000000r 1               ;    the documentation and/or other materials provided with the
+000000r 1               ;    distribution.
+000000r 1               ;
+000000r 1               ; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+000000r 1               ; "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+000000r 1               ; LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+000000r 1               ; FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+000000r 1               ; COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+000000r 1               ; INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+000000r 1               ; BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES, LOSS
+000000r 1               ; OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+000000r 1               ; AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+000000r 1               ; LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+000000r 1               ; ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+000000r 1               ; POSSIBILITY OF SUCH DAMAGE.
+000000r 1               ;----------------------------------------------------------------------
+000000r 1               ;
+000000r 1               ;       64bit = +/- 9223372036854775807
+000000r 1               ;
+000000r 1               ;----------------------------------------------------------------------
+000000r 1               ;
+000000r 1               ;   ca65 setup
+000000r 1               ;
+000000r 1               ; enable 6502 mode
+000000r 1               
+000000r 1               .p02
+000000r 1               
+000000r 1               ; identifiers
+000000r 1               
+000000r 1               ; .case +
+000000r 1               
+000000r 1               ; enable features
+000000r 1               
+000000r 1               .feature c_comments
+000000r 1               
+000000r 1               .feature string_escapes
+000000r 1               
+000000r 1               .feature org_per_seg
+000000r 1               
+000000r 1               .feature dollar_is_pc
+000000r 1               
+000000r 1               .feature pc_assignment
+000000r 1               
+000000r 1               .feature force_range
+000000r 1               
+000000r 1               ;----------------------------------------------------------------------
+000000r 1               
+000000r 1               .include "i2c.s"
+000000r 2               ; ------------------------------------------------------------------------
+000000r 2               ; ------------------------------------------------------------------------
+000000r 2               ; 				I2C
+000000r 2               ;	https://www.ele.uva.es/~jesus/6502copy/nrom3/i2c.s
+000000r 2               ; ------------------------------------------------------------------------
+000000r 2               ; ------------------------------------------------------------------------
+000000r 2               
+000000r 2               .segment "ZERO"
+000000r 2               
+000000r 2               .zeropage
+000000r 2               
+000000r 2  xx           tmp1:	      	.res	1
+000001r 2  xx           tmp2:	      	.res	1
+000002r 2  xx           tmp3:	      	.res	1
+000003r 2  xx           tmp4:	      	.res	1
+000004r 2  xx xx        ptr1:	      	.res	2
+000006r 2  xx xx        ptr2:	      	.res	2
+000008r 2  xx xx        ptr3:	      	.res	2
+00000Ar 2  xx xx        ptr4:	      	.res	2
+00000Cr 2  xx xx        sp:	      	.res   	2 	; Stack pointer
+00000Er 2               
+00000Er 2               msgldx:
+00000Er 2  00 00                .word $0
+000010r 2               uputs:
+000010r 2  00 00                .word $0
+000012r 2               msgs:
+000012r 2  00 00                .word $0
+000014r 2               msgI2C:
+000014r 2  00 00                .word $0
+000016r 2               LCD_data:
+000016r 2  00 00                .word $0
+000018r 2               LCD_cmd:
+000018r 2  00 00                .word $0
+00001Ar 2               fatbuf:
+00001Ar 2  00 00                .word $0
+00001Cr 2               
+00001Cr 2               
+00001Cr 2               SCL     = 1
+00001Cr 2               SDA     = 2
+00001Cr 2               
+00001Cr 2               IRA:
+00001Cr 2               DDRA:
+00001Cr 2  00                   .byte $0
+00001Dr 2               
+00001Dr 2               msg = 0
+00001Dr 2               
+00001Dr 2               ; ---------------------------------------------------------------------
+00001Dr 2               .segment "ONCE"
+000000r 2               
+000000r 2               msgexe:
+000000r 2  65 65 70 72          .asciiz "eeprom read"
+000004r 2  6F 6D 20 72  
+000008r 2  65 61 64 00  
+00000Cr 2               
+00000Cr 2               ; ---------------------------------------------------------------------
+00000Cr 2               	.export	start
+00000Cr 2  A5 rr        start:	lda	DDRA
+00000Er 2  09 04        	ora	#(1<<SDA)	; SDA = L
+000010r 2  85 rr        	sta	DDRA
+000012r 2  09 02        	ora	#(1<<SCL)	; SCL = L
+000014r 2  85 rr        	sta	DDRA
+000016r 2  60           	rts
+000017r 2               
+000017r 2               	.export	stop
+000017r 2  A5 rr        stop:	lda	DDRA
+000019r 2  09 04        	ora	#(1<<SDA)	; SDA = L
+00001Br 2  85 rr        	sta	DDRA
+00001Dr 2  29 FD        	and	#~(1<<SCL)	; SCL = H
+00001Fr 2  85 rr        	sta	DDRA
+000021r 2  29 FB        	and	#~(1<<SDA)	; SDA = H
+000023r 2  85 rr        	sta	DDRA
+000025r 2  60           	rts
+000026r 2               
+000026r 2               ; send A through the I2C bus
+000026r 2               
+000026r 2               	.export	outbyte
+000026r 2               outbyte:
+000026r 2  A2 08        	ldx	#8
+000028r 2  0A           ob1:	asl	a
+000029r 2  48           	pha
+00002Ar 2  A5 rr        	lda	DDRA
+00002Cr 2  90 04        	bcc	ob2		; if Cy = 1 => SDA = 1, else SDA = 0
+00002Er 2  29 FB        	and	#~(1<<SDA)
+000030r 2  B0 02        	bcs	ob3		; uncondicional (Cy is 1)
+000032r 2  09 04        ob2:	ora	#(1<<SDA)
+000034r 2  85 rr        ob3:	sta	DDRA
+000036r 2  29 FD        	and	#~(1<<SCL)	; SCL = H
+000038r 2  85 rr        	sta	DDRA
+00003Ar 2  EA           	nop
+00003Br 2  09 02        	ora	#(1<<SCL)	; SCL = L
+00003Dr 2  85 rr        	sta	DDRA
+00003Fr 2  68           	pla
+000040r 2  CA           	dex
+000041r 2  D0 E5        	bne	ob1
+000043r 2  60           	rts
+000044r 2               
+000044r 2               ; read a byte from the I2C bus and returns it in A
+000044r 2               ; tmp2: modiffied
+000044r 2               
+000044r 2               	.export	inbyte
+000044r 2               inbyte:
+000044r 2  A2 08        	ldx	#8
+000046r 2  A5 rr        ib1:	lda	DDRA
+000048r 2  29 FD        	and	#~(1<<SCL)	; SCL = H
+00004Ar 2  85 rr        	sta	DDRA
+00004Cr 2  06 rr        	asl	tmp2
+00004Er 2  A9 04        	lda	#(1<<SDA)
+000050r 2  24 rr        	bit	IRA
+000052r 2  F0 02        	beq	ib2
+000054r 2  E6 rr        	inc	tmp2
+000056r 2  A5 rr        ib2:	lda	DDRA
+000058r 2  09 02        	ora	#(1<<SCL)	; SCL = L
+00005Ar 2  85 rr        	sta	DDRA
+00005Cr 2  CA           	dex
+00005Dr 2  D0 E7        	bne	ib1
+00005Fr 2  A5 rr        	lda	tmp2
+000061r 2  60           	rts
+000062r 2               
+000062r 2               ; Check the ACK bit
+000062r 2               ; returns Cy=1 if NACK
+000062r 2               
+000062r 2               	.export	tstack
+000062r 2  A5 rr        tstack:	lda	DDRA
+000064r 2  29 FB        	and	#~(1<<SDA)	; SDA = H
+000066r 2  85 rr        	sta	DDRA
+000068r 2  29 FD        	and	#~(1<<SCL)	; SCL = H
+00006Ar 2  85 rr        	sta	DDRA
+00006Cr 2  18           	clc
+00006Dr 2  A9 04        	lda	#(1<<SDA)
+00006Fr 2  24 rr        	bit	IRA		; Check ACK
+000071r 2  F0 01        	beq	tsa1
+000073r 2  38           	sec
+000074r 2  A5 rr        tsa1:	lda	DDRA
+000076r 2  09 02        	ora	#(1<<SCL)	; SCL = L
+000078r 2  85 rr        	sta	DDRA
+00007Ar 2  60           	rts
+00007Br 2               
+00007Br 2               ; generates an ACK or NACK bit, always returns with Z=0
+00007Br 2               
+00007Br 2               	.export	genack, gennack
+00007Br 2  A5 rr        genack: lda	DDRA
+00007Dr 2  09 04        	ora	#(1<<SDA)	; SDA = L
+00007Fr 2  D0 04        	bne	gak1		; unconditional
+000081r 2               gennack:
+000081r 2  A5 rr        	lda	DDRA
+000083r 2  29 FB        	and	#~(1<<SDA)	; SDA = H
+000085r 2  85 rr        gak1:	sta	DDRA
+000087r 2  29 FD        	and	#~(1<<SCL)	; SCL = H
+000089r 2  85 rr        	sta	DDRA
+00008Br 2  EA           	nop
+00008Cr 2  09 02        	ora	#(1<<SCL)	; SCL = L
+00008Er 2  85 rr        	sta	DDRA
+000090r 2  60           	rts
+000091r 2               
+000091r 2               ; ------------------------------------------------------------------------
+000091r 2               ; I2C EEPROM write routine
+000091r 2               ; ptr1:	pointer to data
+000091r 2               ; tmp1: data length
+000091r 2               ; tmp3:	EEPROM byte address
+000091r 2               ; X: EEPROM I2C address (left aligned i.e. $A0)
+000091r 2               ; returns CY=1 if NACK, CY=0 if OK. tmp1, X e Y modiffied
+000091r 2               
+000091r 2               	.export	i2cwr
+000091r 2  20 rr rr     i2cwr:	jsr	start
+000094r 2  8A           	txa
+000095r 2  29 FE        	and	#$FE		; ensure write
+000097r 2  20 rr rr     	jsr	outbyte
+00009Ar 2  20 rr rr     	jsr	tstack
+00009Dr 2  B0 20        	bcs	i2sn2		; NACK -> abort
+00009Fr 2  A5 rr        	lda	tmp3
+0000A1r 2  20 rr rr     	jsr	outbyte
+0000A4r 2  20 rr rr     	jsr	tstack
+0000A7r 2  B0 16        	bcs	i2sn2		; NACK -> abort
+0000A9r 2  A0 00        	ldy	#0
+0000ABr 2  A5 rr        	lda	tmp1		; length=0 -> end
+0000ADr 2  F0 10        	beq	i2sn2
+0000AFr 2  B1 rr        i2sn1:	lda	(ptr1), y
+0000B1r 2  C8           	iny
+0000B2r 2  20 rr rr     	jsr	outbyte
+0000B5r 2  20 rr rr     	jsr	tstack
+0000B8r 2  B0 05        	bcs	i2sn2
+0000BAr 2  C6 rr        	dec	tmp1
+0000BCr 2  D0 F1        	bne	i2sn1
+0000BEr 2  18           i2sn3:	clc
+0000BFr 2  20 rr rr     i2sn2:	jsr	stop
+0000C2r 2  60           i2mf2:	rts
+0000C3r 2               
+0000C3r 2               ; ------------------------------------------------------------------------
+0000C3r 2               ; I2C read routine
+0000C3r 2               ; ptr1:	pointer to data
+0000C3r 2               ; tmp1: data length
+0000C3r 2               ; X: I2C address (left aligned)
+0000C3r 2               ; returns CY=1 if NACK, CY=0 if OK. tmp1, X e Y modiffied
+0000C3r 2               
+0000C3r 2               	.export	i2crd
+0000C3r 2  20 rr rr     i2crd:	jsr	start
+0000C6r 2  8A           	txa
+0000C7r 2  09 01        	ora	#1		; ensure read
+0000C9r 2  20 rr rr     	jsr	outbyte
+0000CCr 2  20 rr rr     	jsr	tstack
+0000CFr 2  B0 EE        	bcs	i2sn2		; NACK -> abort
+0000D1r 2  A0 00        	ldy	#0
+0000D3r 2  A5 rr        i2r1:	lda	DDRA
+0000D5r 2  29 FB        	and	#~(1<<SDA)	; SDA = H
+0000D7r 2  85 rr        	sta	DDRA
+0000D9r 2  20 rr rr     	jsr	inbyte		; data read
+0000DCr 2  91 rr        	sta	(ptr1), y
+0000DEr 2  C8           	iny
+0000DFr 2  C6 rr        	dec	tmp1
+0000E1r 2  F0 06        	beq	i2r2
+0000E3r 2  20 rr rr     	jsr	genack		; not last byte yet -> send ACK
+0000E6r 2  4C rr rr     	jmp	i2r1
+0000E9r 2  20 rr rr     i2r2:	jsr	gennack		; last byte -> send NACK
+0000ECr 2  D0 D0        	bne	i2sn3		; unconditional jump
+0000EEr 2               
+0000EEr 2               ; ------------------------------------------------------------------------
+0000EEr 2               ; ------------------------------------------------------------------------
+0000EEr 2               ; bootI2C: reads the EEPROM content to the address specified in the header
+0000EEr 2               ; if the appropiate mark $B0,$CA is present. The loaded code is executed
+0000EEr 2               ; if the execution address his higher or equal than $300
+0000EEr 2               ; ------------------------------------------------------------------------
+0000EEr 2               ; ------------------------------------------------------------------------
+0000EEr 2               
+0000EEr 2               	.export	bootI2C
+0000EEr 2               bootI2C:
+0000EEr 2  A9 rr        	lda	#<fatbuf	; set a temporary destination pointer
+0000F0r 2  85 rr        	sta	ptr1
+0000F2r 2  A9 rr        	lda	#>fatbuf
+0000F4r 2  85 rr        	sta	ptr1+1
+0000F6r 2  A9 00        	lda	#0
+0000F8r 2  85 rr        	sta	tmp1
+0000FAr 2  85 rr        	sta	tmp3		; Reset the EEPROM counter
+0000FCr 2  A2 A0        	ldx	#$A0
+0000FEr 2  20 rr rr     	jsr	i2cwr
+000101r 2  B0 BF        	bcs	i2mf2
+000103r 2  A9 CE        	lda	#(14+128+64)	; 14th pos. on LCD
+000105r 2  20 rr rr     	jsr	LCD_cmd
+000108r 2  A9 69        	lda	#'i'		; 'i' means I2C EEPROM present
+00010Ar 2  20 rr rr     	jsr	LCD_data
+00010Dr 2  A2 02        	ldx	#(msgI2C-msgs)	; notify also on the UART
+00010Fr 2  20 rr rr     	jsr	uputs
+000112r 2  A9 06        	lda	#6		; reading just the 6-byte header
+000114r 2  85 rr        	sta	tmp1
+000116r 2  A2 A0        	ldx	#$A0
+000118r 2  20 rr rr     	jsr	i2crd
+00011Br 2  B0 5D        	bcs	i2mf
+00011Dr 2  A9 B0        	lda	#$B0
+00011Fr 2  C5 rr        	cmp	fatbuf
+000121r 2  D0 57        	bne	i2mf
+000123r 2  A9 CA        	lda	#$CA
+000125r 2  C5 rr        	cmp	fatbuf+1
+000127r 2  D0 51        	bne	i2mf
+000129r 2  A9 CE        	lda	#(14+128+64)	; 14th pos. on LCD
+00012Br 2  20 rr rr     	jsr	LCD_cmd
+00012Er 2  A9 49        	lda	#'I'		; 'I' means valid mark
+000130r 2  20 rr rr     	jsr	LCD_data
+000133r 2  A2 FC        	ldx	#(msgldx-msgs)	; notify also on the UART
+000135r 2  20 rr rr     	jsr	uputs
+000138r 2  A5 rr        	lda	fatbuf+2	; save header pointers
+00013Ar 2  85 rr        	sta	ptr1
+00013Cr 2  A5 rr        	lda	fatbuf+3
+00013Er 2  85 rr        	sta	ptr1+1
+000140r 2  A5 rr        	lda	fatbuf+4
+000142r 2  85 rr        	sta	ptr2
+000144r 2  A5 rr        	lda	fatbuf+5
+000146r 2  85 rr        	sta	ptr2+1
+000148r 2               
+000148r 2  A9 00        i3cmem:	lda	#0		; Reset the EEPROM address again
+00014Ar 2  85 rr        	sta	tmp1
+00014Cr 2  85 rr        	sta	tmp3
+00014Er 2  A2 A0        	ldx	#$A0
+000150r 2  86 rr        	stx	tmp4		; I2C address (increments every 256 bytes)
+000152r 2  20 rr rr     	jsr	i2cwr
+000155r 2  B0 23        	bcs	i2mf
+000157r 2  A9 08        	lda	#8
+000159r 2  85 rr        	sta	tmp3		; page counter (8 pages * 256 bytes = 2kb)
+00015Br 2  A6 rr        i2m1:	ldx	tmp4
+00015Dr 2  20 rr rr     	jsr	i2crd		; 256 byte read
+000160r 2  B0 18        	bcs	i2mf
+000162r 2  E6 rr        	inc	ptr1+1
+000164r 2  E6 rr        	inc	tmp4
+000166r 2  E6 rr        	inc	tmp4
+000168r 2  C6 rr        	dec	tmp3
+00016Ar 2  D0 EF        	bne	i2m1
+00016Cr 2               
+00016Cr 2  A5 rr        	lda	ptr2+1		; execute if address >= $300
+00016Er 2  C9 03        	cmp	#3
+000170r 2  90 08        	bcc	i2mf
+000172r 2  A2 rr        	ldx	#(msgexe-msgs)	; notify execution on UART
+000174r 2  20 rr rr     	jsr	uputs
+000177r 2  6C rr rr     	jmp	(ptr2)
+00017Ar 2  60           i2mf:	rts
+00017Br 2               
+00017Br 2               
+00017Br 1               
+00017Br 1               ;----------------------------------------------------------------------
+00017Br 1               
