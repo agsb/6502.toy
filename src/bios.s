@@ -43,13 +43,15 @@
 ;
 ;# Easy BIOS or MOS for a 6502toy
 ;
-;64bit = +/- 9223372036854775807
+;       64bit = +/- 9223372036854775807
 ;
 ;## Memory map
 ;   
-;60k     $0000 to $EFFF, RAM
+;60k     $0000 to $DFFF, RAM
 ; 
-; 4k     $F000 to $FFFF, ROM and $F000 to $F0FF, DEVICES
+; 4k     $E000 to $FFFF, ROM 
+;
+; 256    $E000 to $E0FF, DEVICES
 ;
 ;### RAM
 ;
@@ -58,13 +60,13 @@
 ;            reserved $FF-
 ;
 ;        $0100 to $01FF page one, hardware stack
-;            reserved $FF-
+;            reserved $100 to $13F
 ;
 ;        $0200 page two, free 
 ;        
 ;        $0300 page tri, free
 ;   
-;        $0400 page qua, 
+;        $0400 page qua, bios jump table
 ;
 ;        $0E00
 ;
@@ -72,9 +74,9 @@
 ;
 ;#### exclusive ROM
 ;
-;        $F000-$F0FF Devices
+;        $E000-$E0FF Devices
 ;
-;        $F100-$FFFF BOOT ROM
+;        $E100-$FFFF BOOT ROM
 ;
 ;### DEVICES
 ;
@@ -102,7 +104,7 @@
 ;
 ;### ROM
 ;        
-;        $F100 to $FFFF  3.75k ROM 
+;        $E100 to $FFFF  7.75k ROM 
 ;
 ;        At boot:
 ;        
@@ -178,13 +180,16 @@
         BUSY    = 3
 
 ;--------------------------------------------------------
+; using same clock of 6551 1.8432, by half a phi0
+;
 ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400 
+;
 ; used by VIA T1 which depends directly of phi2
 ;
 ;--------------------------------------------------------
 ; devices
  
-        DEVS = $F000
+        DEVS = $E000
 
 ;--------------------------------------------------------
 ; terminal usart
@@ -269,7 +274,7 @@
 
         NMI_VEC = $04FA
 
-        RST_VEC = $04FC
+        RST_VEC = $04FC ; fake
 
         IRQ_VEC = $04FE
 
