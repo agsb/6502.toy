@@ -47,11 +47,11 @@
 ;
 ;## Memory map
 ;   
-;60k     $0000 to $DFFF, RAM
+;       56k     $0000 to $DFFF, RAM
 ; 
-; 4k     $E000 to $FFFF, ROM 
+;        8k     $E000 to $FFFF, ROM 
 ;
-; 256    $E000 to $E0FF, DEVICES
+;       256     $E000 to $E0FF, DEVICES
 ;
 ;### RAM
 ;
@@ -66,7 +66,7 @@
 ;        
 ;        $0300 page tri, free
 ;   
-;        $0400 page qua, bios jump table
+;        $0400 page qua, bios reserved
 ;
 ;        $0E00
 ;
@@ -82,25 +82,25 @@
 ;
 ;        mapped onboard:
 ;  
-;        $F000   bios exclusive hardware
+;        $E000   bios exclusive hardware
 ;        
-;        $F010   bios device 01, acia 6551, USART TERMINAL
+;        $E010   bios device 01, acia 6551, USART TERMINAL
 ;        
-;        $F020   bios device 02, via 6522, TICK, I2C, SPI, LCD, KBD
+;        $E020   bios device 02, via 6522, TICK, I2C, SPI, LCD, KBD
 ;        
-;        $F030   bios device 03, via 6522, user
+;        $E030   bios device 03, via 6522, user
 ;        
-;        $F040   external device 04
+;        $E040   external device 04
 ;        
-;        $F050   external device 05
+;        $E050   external device 05
 ;        
-;        $F060   external device 06
+;        $E060   external device 06
 ;        
-;        $F070   external device 07
+;        $E070   external device 07
 ;        
 ;        for expansion:
 ;        
-;        $F080 to $F0FF, free  
+;        $E080 to $E0FF, free  
 ;
 ;### ROM
 ;        
@@ -138,37 +138,12 @@
 ;
 ;        - check size of RAM, ROM, in 4 kb blocks, $0000..$F000
 ;        
-;        - check I2C, REM, LCD, 
+;        - check I2C, SPI, REM, LCD, 
 ;        
 ;        - responses from ACIA, VIA, TIA 	
 ;
 ;.ENDIF
 ;
-;--------------------------------------------------------
-;
-;   ca65 setup
-;
-
-; identifiers
-
-.case +
-
-; enable features
-
-.feature c_comments
-
-.feature string_escapes
-
-.feature org_per_seg
-
-.feature dollar_is_pc
-
-.feature pc_assignment
-
-; enable 6502 mode
-
-.p02
-
 ;--------------------------------------------------------
 ; constants
 ;--------------------------------------------------------
@@ -250,11 +225,11 @@
 ;   T1 is tick, NMI interrupt /;
 ;
 ; for USART
-        USRX = (1 << 7)    
-        USTX = (1 << 6)    
+        URX = (1 << 7)    
+        UTX = (1 << 6)    
 
 ; for SPI
-        MCS0 = (1 << 5)    
+        MCSS = (1 << 5)    
         MOSI = (1 << 4)
         MISO = (1 << 3)
         MSCL = (1 << 2)
@@ -271,6 +246,8 @@
 ;--------------------------------------------------------
 ; alias at page 
 ; hold the references for interrupt routines
+
+        JMP_VEC = $04F8
 
         NMI_VEC = $04FA
 
@@ -293,10 +270,13 @@
 ; reserved for bios, 16 bytes
 
 ; bios_tick, must be bytes :)
-bios_tick:      .byte $0, $0, $0, $0 ; ~49,7 days in milliseconds
+; ~49,7 days in milliseconds
+bios_tick:      .byte $0, $0, $0, $0 
 
 ; bios service interrupt saves, BRK
 bios_f:         .byte $0
+
+; bios service save space
 bios_s:         .byte $0
 bios_a:         .byte $0
 bios_p:         .byte $0
@@ -314,6 +294,7 @@ bios_many:       .word $0
 
 ;----------------------------------------------------------------------
 ; $0100 to $013F, reserved for bios
+; about 32 address
 * = $0100
 .res $40, $00   ; bios_stack
 
@@ -330,6 +311,8 @@ bios_many:       .word $0
 
 ; functions vectors
 ; misc
+.addr init
+
 .addr void
 .addr beep
 .addr tone_play ; lsb and msb ????
@@ -351,7 +334,6 @@ bios_many:       .word $0
 .addr tick_start        ; start counter
 .addr tick_stop         ; stop counter
 .addr tick_zero         ; reset counter
-;.addr tick_value        ; return counter
 
 ; ram
 .addr ram2ram
@@ -363,9 +345,6 @@ bios_many:       .word $0
 ; spi
 .addr rem2ram_spi
 .addr ram2rem_spi
-
-; reset
-.addr init
 
 ; tia init
 .addr bios_tia_init
@@ -421,12 +400,12 @@ shift_rs:
 ;
 ;--------------------------------------------------------
 ; $F000 to $F03F reserved for devices
-* = $F000
+* = $E000
 
 ;--------------------------------------------------------
 ; $F100 to $FFFF bios
 ;       nop for align
-* = $F100
+* = $E100
 
  jump_nmi:
         nop    
@@ -556,11 +535,6 @@ init:
         ; enable interrupts
 
         cli
-
-        ; there we go....
-        jsr main
-
- main:
 
         ; insanity for safety
         jmp $1000

@@ -12,10 +12,7 @@ LDFLAGS = --cpu 6502 --memory-model near \
 	--no-target-lib --target none -t none \
 	--debug --debug-info
 
-#MYS = ($(MAKECMDGOALS))
-#MY = ($(MYS[1]))
-
-MY = bios
+MY = main
 
 LOADD = 0300
 
