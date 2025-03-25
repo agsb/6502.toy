@@ -1,2 +1,0 @@
-Executing: ca65 --cpu 6502 -mm near -g -l main.lst -t none main.s 
-Executing: ld65 -Ln main.lbl -m main.map -o main.out -C main.cfg main.o 

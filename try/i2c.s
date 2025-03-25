@@ -7,17 +7,17 @@
 
 .segment "ZERO"
 
-.zeropage
-
 tmp1:	      	.res	1
 tmp2:	      	.res	1
 tmp3:	      	.res	1
 tmp4:	      	.res	1
-ptr1:	      	.res	2
-ptr2:	      	.res	2
-ptr3:	      	.res	2
-ptr4:	      	.res	2
-sp:	      	.res   	2 	; Stack pointer
+
+ptr1:	      	.addr	2
+ptr2:	      	.addr	2
+ptr3:	      	.addr	2
+ptr4:	      	.addr	2
+
+sp:	      	.addr  	2 	; Stack pointer
 
 msgldx: 
         .word $0
@@ -172,7 +172,8 @@ i2cwr:	jsr	start
 	ldy	#0
 	lda	tmp1		; length=0 -> end
 	beq	i2sn2
-i2sn1:	lda	(ptr1), y
+i2sn1:	;lda	(ptr1), y
+	lda	ptr1, y
 	iny
 	jsr	outbyte
 	jsr	tstack
@@ -202,7 +203,8 @@ i2r1:	lda	DDRA
 	and	#~(1<<SDA)	; SDA = H
 	sta	DDRA
 	jsr	inbyte		; data read
-	sta	(ptr1), y
+	;sta	(ptr1), y
+	sta	ptr1, y
 	iny
 	dec	tmp1
 	beq	i2r2
@@ -286,6 +288,7 @@ i2m1:	ldx	tmp4
 	bcc	i2mf
 	ldx	#(msgexe-msgs)	; notify execution on UART
 	jsr	uputs
-	jmp	(ptr2)
+	;jmp	(ptr2)
+	jmp	ptr2
 i2mf:	rts		
 

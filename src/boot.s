@@ -407,8 +407,9 @@ shift_rs:
 ; some code adapted from 6502.org forum
 ;
 ;--------------------------------------------------------
-; $F000 to $F03F reserved for devices
+; $E000 to $E0FF reserved for devices
 * = $E000
+        .res #$FF
 
 ;--------------------------------------------------------
 ; $F100 to $FFFF bios
@@ -437,22 +438,7 @@ shift_rs:
 
         rti
 
-; i2c
-
-rem2ram_i2c:
-
-ram2rem_i2c:
-
-; spi
-
-rem2ram_spi:
-
-ram2rem_spi:
-
-; copy
-
-ram2ram:
-        rts
+;--------------------------------------------------------
 
 ;--------------------------------------------------------
 ; reset 
@@ -969,6 +955,23 @@ tia_init:
 
 .include "i2c.s"
 
+; i2c
+
+rem2ram_i2c:
+
+ram2rem_i2c:
+
+; spi
+
+rem2ram_spi:
+
+ram2rem_spi:
+
+; copy
+
+ram2ram:
+        rts
+
 ;----------------------------------------------------------------------
 
 .byte $DE,$AD,$C0,$DE
@@ -1064,9 +1067,12 @@ roulette_wheel:
 .segment "VECTORS"
 
 ; hardware jumpers
-.word jump_nmi   ; fa ROM NMI vector
-.word jump_rst   ; fc ROM Reset vector
-.word jump_irq   ; fe ROM IRQ/BRK vector
+NMI_ROM:
+.addr jump_nmi   ; fa ROM NMI vector
+RST_ROM:
+.addr jump_rst   ; fc ROM Reset vector
+IRQ_ROM:
+.addr jump_irq   ; fe ROM IRQ/BRK vector
 
 ;----------------------------------------------------------------------
 ; ends list 

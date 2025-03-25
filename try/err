@@ -1,3 +1,0 @@
-ld65: Warning: main.cfg:27: Segment 'VECTORS' does not exist
-ld65: Warning: Cannot evaluate assertion in module 'i2c.s', line 289
-ld65: Error: Missing memory area assignment for segment 'ZEROPAGE'
