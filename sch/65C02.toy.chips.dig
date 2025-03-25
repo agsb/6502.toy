@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<circuit>
+  <version>2</version>
+  <attributes/>
+  <visualElements>
+    <visualElement>
+      <elementName>7400.dig</elementName>
+      <elementAttributes/>
+      <pos x="300" y="100"/>
+    </visualElement>
+    <visualElement>
+      <elementName>7410.dig</elementName>
+      <elementAttributes/>
+      <pos x="640" y="100"/>
+    </visualElement>
+    <visualElement>
+      <elementName>28c64.dig</elementName>
+      <elementAttributes/>
+      <pos x="980" y="100"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Ground</elementName>
+      <elementAttributes/>
+      <pos x="680" y="600"/>
+    </visualElement>
+    <visualElement>
+      <elementName>VDD</elementName>
+      <elementAttributes/>
+      <pos x="140" y="40"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Out</elementName>
+      <elementAttributes/>
+      <pos x="860" y="40"/>
+    </visualElement>
+  </visualElements>
+  <wires/>
+  <measurementOrdering/>
+</circuit>
