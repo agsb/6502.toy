@@ -122,4 +122,6 @@ http://wilsonminesco.com/
 
 https://www.ele.uva.es/~jesus/6502copy/proto.html
 
+https://www.youtube.com/watch?v=LrPxM-qYNTI
+
 
