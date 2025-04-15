@@ -46,8 +46,16 @@ PS.
         - n x  0.1 uF,
         - 02 x 4.7 uF,
         - 01 x crystal 1.8432 MHz,
-        - n x color leds,
-        - n x small resistors,
+        - 01 x  TS1813
+        - n  x color leds,
+        - n  x small resistors,
+    
+The 6502's default frequency of about 1 MHz is merely illustrative, 
+    compared to the 3.6 GHz of current CPUs.
+   
+The USART is at 19200 bps, 8-N-1, duplex. fixed, no changes.
+
+The I2C EEPROM used as Hard Disk, 1k block, 64 bytes (screens).
         
 All devices are CMOS and 5V capable.        
 
@@ -71,7 +79,7 @@ Using a LCD 16x4 by I2C, a keyboard with 6 keys, a beeper, a speaker and a pool 
 
 Using I2C and SPI protocols and devices. 
 
-The board have 2 8-pins slots for I2C epproms.
+The board have 2 x 8-pins slots for I2C epproms.
 
 Use [UEXT](https://en.wikipedia.org/wiki/UEXT) interface for USART, I2C, SPI, 3V3
 
@@ -149,5 +157,4 @@ http://wilsonminesco.com/
 https://www.ele.uva.es/~jesus/6502copy/proto.html
 
 https://www.youtube.com/watch?v=LrPxM-qYNTI
-
 

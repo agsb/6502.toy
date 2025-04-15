@@ -656,11 +656,11 @@ bios_tia_service:
 ;========================================================
 ; NMI, counts ticks
 ;       bios_tick in zero page
+; at 1ms about 8 years
  bios_nmi:
  bios_clock:
         ; for safe
         sei 
-        cld                
         bit VIA_T1CL            ; clear bit
         ; cascate counter
         inc bios_tick+0
