@@ -142,13 +142,13 @@ The page $0300-$03FF is a list of references for devices and system (BIOS, MOS) 
 
 The pages $0400-$0FFF are reserved for future expansion, programs start at $1000.
 
-The Forth uses RAM from $1000 to $EFFF and $00D0-$00DF 16 bytes at page zero.
+The Forth uses RAM from $1000 to $DFFF, $00D0-$00DF 16 bytes at page zero and ???? to ???? at page one.
 
 ## Ideas
 
-1. The initial memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
-2. Use 32k SRAM + 32k SRAM + 8k EEPROM (shadow)
-3. Use 32k SRAM + banks x 16k SRAM + 8k SRAM + 8k EEPROM
+1. Use 32k SRAM + 32k SRAM + 8k EEPROM (shadow) and devices
+2. Use 32k SRAM-0 + banks x 16k SRAM-N + 8k SRAM-0 + 8k EEPROM and devices
+3. The initial memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
 
 ## Links
 
