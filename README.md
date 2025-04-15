@@ -118,15 +118,17 @@ generic routines at bios:
     - tone
     - play
     
-    - tick_put
-    - tick_get
-    - tick_run
-    - tick_pause
+    - tick_put, write into counter
+    - tick_get, read from counter
+    - tick_run, starts counter
+    - tick_hlt, stops counter
     
-    - roulette
-    - seed
-    - random
+    - roulette, random number from 0 to 36
+    - seed, random seed from 0 to $FF
+    - random, returns a random number from 0 to $FF
 
+    - hex2bin, convert a hexagesimal ascii to byte ($00 to $FF)
+    - bin2hex, convert a byte to hexagesimal ascii ($00 to $FF)
     
 ## Memory 
 
