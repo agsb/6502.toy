@@ -49,9 +49,10 @@ PS.
         - 01 x  TS1813
         - n  x color leds,
         - n  x small resistors,
-    
-The 6502's default frequency of about 1 MHz is merely illustrative, 
-    compared to the 3.6 GHz of current CPUs.
+
+## Topics
+
+The 6502's default frequency of about 1 MHz is merely illustrative, compared to the 3.6 GHz of current CPUs.
    
 The USART is at 19200 bps, 8-N-1, duplex. fixed, no changes.
 
@@ -98,25 +99,24 @@ Use USART for VT100 terminal, Tera-Term or PuTTy at computer.
 
 generic routines at bios:
 
-    - ram2ram,        copy bytes from RAM to RAM
-    - rem2ram,        copy bytes from REM to RAM
-    - ram2rem,        copy bytes from RAM to REM
+    - ram2ram, copy bytes from RAM to RAM
+    - rem2ram, copy bytes from REM to RAM
+    - ram2rem, copy bytes from RAM to REM
     
-    - set_spi
-    - set_i2c
-    - set_sram
+    - set_spi, prepare spi
+    - set_i2c, prepare i2c
+    - set_sram, prepare sram page
     
-    - getc
-    - putc
-    - getcq
-    - putcq
+    - getc, uart get a char 
+    - putc, uart put a char
+    - getcq, verify to get
+    - putcq, verify to put
     
-    - getp
-    - putp
+    - getp, generic port get
+    - putp, generic port put
     
-    - beep
-    - tone
-    - play
+    - beep, as is
+    - tone, play a tone
     
     - tick_put, write into counter
     - tick_get, read from counter
@@ -147,7 +147,9 @@ The Forth uses RAM from $1000 to $DFFF, $00D0-$00DF 16 bytes at page zero and ??
 ## Ideas
 
 1. Use 32k SRAM + 32k SRAM + 8k EEPROM (shadow) and devices
+
 2. Use 32k SRAM-0 + banks x 16k SRAM-N + 8k SRAM-0 + 8k EEPROM and devices
+
 3. The initial memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
 
 ## Links
@@ -159,4 +161,5 @@ http://wilsonminesco.com/
 https://www.ele.uva.es/~jesus/6502copy/proto.html
 
 https://www.youtube.com/watch?v=LrPxM-qYNTI
+
 
