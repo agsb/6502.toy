@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<circuit>
+  <version>2</version>
+  <attributes/>
+  <visualElements>
+    <visualElement>
+      <elementName>Out</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Label</string>
+          <string>CS_RAM</string>
+        </entry>
+      </elementAttributes>
+      <pos x="400" y="480"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Out</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Label</string>
+          <string>CS_DEV</string>
+        </entry>
+      </elementAttributes>
+      <pos x="400" y="740"/>
+    </visualElement>
+    <visualElement>
+      <elementName>NAnd</elementName>
+      <elementAttributes>
+        <entry>
+          <string>wideShape</string>
+          <boolean>true</boolean>
+        </entry>
+      </elementAttributes>
+      <pos x="220" y="600"/>
+    </visualElement>
+    <visualElement>
+      <elementName>In</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Label</string>
+          <string>ROM</string>
+        </entry>
+      </elementAttributes>
+      <pos x="-160" y="560"/>
+    </visualElement>
+    <visualElement>
+      <elementName>In</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Label</string>
+          <string>DEV</string>
+        </entry>
+      </elementAttributes>
+      <pos x="-160" y="600"/>
+    </visualElement>
+    <visualElement>
+      <elementName>NAnd</elementName>
+      <elementAttributes>
+        <entry>
+          <string>wideShape</string>
+          <boolean>true</boolean>
+        </entry>
+      </elementAttributes>
+      <pos x="-60" y="460"/>
+    </visualElement>
+    <visualElement>
+      <elementName>NAnd</elementName>
+      <elementAttributes>
+        <entry>
+          <string>wideShape</string>
+          <boolean>true</boolean>
+        </entry>
+      </elementAttributes>
+      <pos x="220" y="720"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Out</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Label</string>
+          <string>CS_ROM</string>
+        </entry>
+      </elementAttributes>
+      <pos x="400" y="620"/>
+    </visualElement>
+    <visualElement>
+      <elementName>NAnd</elementName>
+      <elementAttributes>
+        <entry>
+          <string>wideShape</string>
+          <boolean>true</boolean>
+        </entry>
+      </elementAttributes>
+      <pos x="-60" y="700"/>
+    </visualElement>
+  </visualElements>
+  <wires>
+    <wire>
+      <p1 x="40" y="480"/>
+      <p2 x="120" y="480"/>
+    </wire>
+    <wire>
+      <p1 x="120" y="480"/>
+      <p2 x="400" y="480"/>
+    </wire>
+    <wire>
+      <p1 x="120" y="640"/>
+      <p2 x="220" y="640"/>
+    </wire>
+    <wire>
+      <p1 x="40" y="720"/>
+      <p2 x="220" y="720"/>
+    </wire>
+    <wire>
+      <p1 x="-160" y="560"/>
+      <p2 x="-120" y="560"/>
+    </wire>
+    <wire>
+      <p1 x="320" y="740"/>
+      <p2 x="400" y="740"/>
+    </wire>
+    <wire>
+      <p1 x="-120" y="740"/>
+      <p2 x="-60" y="740"/>
+    </wire>
+    <wire>
+      <p1 x="-120" y="500"/>
+      <p2 x="-60" y="500"/>
+    </wire>
+    <wire>
+      <p1 x="-160" y="600"/>
+      <p2 x="-120" y="600"/>
+    </wire>
+    <wire>
+      <p1 x="-120" y="600"/>
+      <p2 x="220" y="600"/>
+    </wire>
+    <wire>
+      <p1 x="120" y="760"/>
+      <p2 x="220" y="760"/>
+    </wire>
+    <wire>
+      <p1 x="-120" y="460"/>
+      <p2 x="-60" y="460"/>
+    </wire>
+    <wire>
+      <p1 x="320" y="620"/>
+      <p2 x="400" y="620"/>
+    </wire>
+    <wire>
+      <p1 x="-120" y="700"/>
+      <p2 x="-60" y="700"/>
+    </wire>
+    <wire>
+      <p1 x="-120" y="460"/>
+      <p2 x="-120" y="500"/>
+    </wire>
+    <wire>
+      <p1 x="-120" y="600"/>
+      <p2 x="-120" y="700"/>
+    </wire>
+    <wire>
+      <p1 x="-120" y="700"/>
+      <p2 x="-120" y="740"/>
+    </wire>
+    <wire>
+      <p1 x="-120" y="500"/>
+      <p2 x="-120" y="560"/>
+    </wire>
+    <wire>
+      <p1 x="120" y="480"/>
+      <p2 x="120" y="640"/>
+    </wire>
+    <wire>
+      <p1 x="120" y="640"/>
+      <p2 x="120" y="760"/>
+    </wire>
+  </wires>
+  <measurementOrdering/>
+</circuit>
