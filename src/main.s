@@ -53,25 +53,11 @@
 
 ;-----------------------------------------------------------------------
 main:
-
-;   disable interrupts
-        sei
-
-;   clear BCD
-        cld
-
-;   set S0 
-        ldx #$FF
-
-;   set R0 
-        txs
-
-;   enable interrupts
-        cli
-
-;   real init 
-
-        jmp cold
+;   
+;   generic 
+;
+    nop
+    jmp cold
 
 ;---------------------------------------------------------------------
 ;  init of lib6502 emulator 
@@ -95,11 +81,13 @@ byes:
 ;  end of lib6502 emulator 
 ;---------------------------------------------------------------------
 
-init_of_bios:
+; plugin modules
 
-.include "bios.s"
+init_of_boot:
 
-exit_of_bios:
+.include "boot.s"
+
+exit_of_boot:
 
 .byte $DE, $AD, $C0, $DE
 
