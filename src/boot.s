@@ -80,7 +80,7 @@
 ;        
 ;        dev01  $FE10 bios device 01, acia 6551, USART RS-232 TERMINAL
 ;        
-;        dev02  $FE20 bios device 02, via 6522, TICK, I2C, SPI, LCD, KBD
+;        dev02  $FE20 bios device 02, via 6522, beat, I2C, SPI, LCD, KBD
 ;        
 ;        dev03  $FE30 bios device 03, via 6522, user
 ;        
@@ -110,7 +110,7 @@
 ;
 ;### Interrupts
 ;
-;        the clock tick done by VIA T1 is the only NMI of 6502
+;        the clock beat done by VIA T1 is the only NMI of 6502
 ;        
 ;### Best 
 ;
@@ -229,8 +229,8 @@
 ;--------------------------------------------------------
 ; VIA port A
 
-;   T1 is tick, NMI interrupt /;
-;
+;   T1 is beat, NMI interrupt /;
+
 ; for USART
         URX = (1 << 7)    
         UTX = (1 << 6)    
@@ -260,23 +260,28 @@
 ; reserved for bios
 * = $000
 
-; bios_tick, must be bytes ; ~49,7 days in milliseconds
-bios_tick:      .byte $0, $0, $0, $0 
+; for safe and sake
+bios_void:      .word $0
 
 ; bios service interrupt saves, BRK
-bios_flag:      .byte $0
+bios_flag:      .word $0
 
-; bios service save space, 
-bios_s:         .byte $0
+; bios_beat, must be bytes ; ~49,7 days in milliseconds
+bios_beat:      .byte $0, $0, $0, $0 
+
+; bios services save space, 
 bios_a:         .byte $0
-bios_p:         .byte $0
+bios_b:         .byte $0
 bios_y:         .byte $0
 bios_x:         .byte $0
+bios_s:         .byte $0
+bios_p:         .byte $0
 
-; for memory moves
+; for memory moves, lda/sta (indirect), y
 bios_from:      .word $0
 bios_into:      .word $0
 bios_many:      .word $0
+bios_with:      .word $0
 
 ;
 page_zero_used:
@@ -295,10 +300,12 @@ page_one_used:
 .segment "CODE"
 
 ;----------------------------------------------------------------------
-* = $0200
 ; bios pointers
+* = $0200
 
-    JUMPS = $0200
+bios_list:
+
+.res $FF, 00
 
 page_two_used:
 
@@ -306,11 +313,11 @@ page_two_used:
 * = $0300
 ; bios variables
 
-bios_void:      .word $0, $0
+bios_boot:      .word $0
 bios_seed:      .byte $0, $0, $0, $0
+bios_tick:      .word $0, $0, $0, $0 
 
 bios_tone:      .word $0, $0 
-bios_beat:      .word $0, $0 
 bios_acia:      .word $0, $0
 
 bios_tmp0:      .word $0
@@ -331,26 +338,22 @@ page_tri_used:
 ;
 .segment "ONCE"
 
-
 ;--------------------------------------------------------
-;   bios code
+;   generic bios code, EEPROM
 * = $E000
 
-;--------------------------------------------------------
-;   prepare jump table
-jump_table:
+.byte $DE,$AD,$C0,$DE
 
-        lda #<bios_nmi
-        sta JUMPS + 2
-        lda #>bios_nmi
-        sta JUMPS + 3
+;---------------------------------------------------------------------
+; jump indirect from a list, all address absolute
+bios_jump:
+        lda bios_list + 1, x
+        pha
+        lda bios_list + 0, x
+        pha
+        php
+        rti
 
-        lda #<bios_irq
-        sta JUMPS + 4
-        lda #>bios_irq
-        sta JUMPS + 5
-
-        rts
 
 ;--------------------------------------------------------
 ; BEEP FREQ DIVIDER = 461	; 1 KHz @ 921,6 kHz 
@@ -380,6 +383,8 @@ bios_tia_service:
 
 ;--------------------------------------------------------
 ; power on self test
+; never use before reset !
+;
 post:
 @test_ram:
         ldy #02 
@@ -480,8 +485,8 @@ copy_eep:
         rts
 
 ;========================================================
-; NMI, counts ticks
-;       bios_tick in zero page
+; NMI, counts beats
+;       bios_beat in zero page
 ; at 1ms about 8 years
 bios_nmi:
 bios_clock:
@@ -489,13 +494,13 @@ bios_clock:
         sei 
         bit VIA_T1CL            ; clear bit
         ; cascate counter
-        inc bios_tick+0
+        inc bios_beat+0
         bne @ends
-        inc bios_tick+1
+        inc bios_beat+1
         bne @ends
-        inc bios_tick+2
+        inc bios_beat+2
         bne @ends
-        inc bios_tick+3
+        inc bios_beat+3
 @ends:
         cli
         rti
@@ -558,7 +563,10 @@ bios_soft_easy:
         jmp bios_soft_ends
 
 ;--------------------------------------------------------
+;       fall throught
+
 bios_hard_easy:
+        pha
 
 @scan_via:
         bit VIA_IFR
@@ -577,13 +585,11 @@ bios_hard_easy:
 
 @scan_panic:
         ; forgot voids
-        pha
         jmp bios_hard_ends
 
 ;--------------------------------------------------------
 ;    attend interrupt 
 service_via:
-        pha
         lda #$7F
         sta VIA_IFR;
         jmp bios_hard_ends
@@ -591,20 +597,13 @@ service_via:
 ;--------------------------------------------------------
 ;    attend interrupt 
 service_tia:
-        pha
         lda #$7F
         sta TIA_IFR;
         jmp bios_hard_ends
 
-;----------------------------------------------------------------------
-
-.byte $DE,$AD,$C0,$DE
-
 ;--------------------------------------------------------
-; zzzz
 ;    attend interrupt 
 service_cia:
-        pha
         jmp bios_hard_ends
 
 ;======================================================================
@@ -648,7 +647,7 @@ acia_txq:
 ;   receive a byte thru 6551, waits
 ;
 getch:  
-@acia_rx:
+acia_rx:
         ; verify
         lda CIA_STAT
         and #$08
@@ -662,7 +661,7 @@ getch:
 ;   transmit a byte thru 6551, waits
 ;
 putch:  
-@acia_tx:
+acia_tx:
         ; verify
         pha
         lda CIA_STAT
@@ -687,10 +686,6 @@ delay:
         tax
         rts
 
-;----------------------------------------------------------------------
-
-.byte $DE,$AD,$C0,$DE
-
 ;--------------------------------------------------------
 ;   via init, I2C, SPI, LCD, KBD, 
 ;
@@ -701,7 +696,7 @@ delay:
 ;	pa1 sda, pa0 scl
 ;
 ;	pb1 lcd4, pb2 lcd5, pb3 lcd6, 
-;   pb4 lcd7, pb5 lcdR, pb6 lcdE
+;       pb4 lcd7, pb5 lcdR, pb6 lcdE
 ;
 via_init:
         lda #%01101100            
@@ -736,16 +731,12 @@ tone_play:
         ldy bios_y
         rts
 
-;----------------------------------------------------------------------
-
-.byte $DE,$AD,$C0,$DE
-
 ;--------------------------------------------------------
 ;
 ; clock beat, using VIA T1 free run 
 ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
 ;
-tick_init:
+beat_init:
         ; store counter
         lda bios_beat + 0
         sta VIA_T1CL
@@ -761,8 +752,8 @@ tick_init:
         rts
 
 ;--------------------------------------------------------
-; start tick, zzzz
-tick_start:
+; start beat, zzzz
+beat_start:
         pha
         lda VIA_IER
         and #$7F   ;    %01111111
@@ -772,8 +763,8 @@ tick_start:
         rts
 
 ;--------------------------------------------------------
-; stop tick, zzzz    
-tick_stop:
+; stop beat, zzzz    
+beat_stop:
         pha
         ; lda #%10000000
         lda VIA_IER
@@ -784,16 +775,16 @@ tick_stop:
         rts
 
 ;--------------------------------------------------------
-; clear tick    
-tick_clear:
+; clear beat    
+beat_clear:
         pha
-        jsr tick_stop
+        jsr beat_stop
         lda #$00
-        sta bios_tick+0
-        sta bios_tick+1
-        sta bios_tick+2
-        sta bios_tick+3
-        ; jsr tick_start
+        sta bios_beat+0
+        sta bios_beat+1
+        sta bios_beat+2
+        sta bios_beat+3
+        ; jsr beat_start
         pla
         rts
 
@@ -823,10 +814,6 @@ ram2rem_spi:
 
 ram2ram:
         rts
-
-;----------------------------------------------------------------------
-
-.byte $DE,$AD,$C0,$DE
 
 ;----------------------------------------------------------------------
 ;
@@ -918,9 +905,6 @@ roulette_wheel:
 .byte 14, 31, 09, 22, 18, 29, 07, 28, 12, 35, 03, 26
 
 ;--------------------------------------------------------
-.byte $DE,$AD,$C0,$DE
-
-;--------------------------------------------------------
 ; tones, for T2 one-shoot, with SR as output
 
 ; StarTreck(2), C5, D5, E5, F5, G5, A5, Quindar(2)
@@ -935,6 +919,8 @@ tone_msb:
 shift_rs: 
         .byte %01010101, %00110011, %00001111, %10001110
 
+
+
 ;--------------------------------------------------------
 ;   reserved for devices
 * = $FE00
@@ -944,8 +930,7 @@ shift_rs:
 ;   boot code
 * = $FF00
 
-jump_rst:
-rst_init:
+bios_rst:
 init:
         
         ; disable interrupts
@@ -963,6 +948,17 @@ init:
 
         ; power on self test 
         jsr post
+
+        ; copy interrupt vectors and bios functions
+
+        ldy #(bios_list_end - bios_list_rom)
+@loop:
+        lda bios_list_rom, y
+        sta bios_list, y
+        dey
+        bne @loop
+
+        ; setup acia, with external clock 11.0592 MHz
 
         ; %0001 1111 = 19200 baud, external receiver, 8 bit, 1 stop bit
         lda #$1F     
@@ -990,12 +986,6 @@ init:
         ; copy REM to RAM
         ; jsr copy_eep     
 
-        ; alive
-        jsr beep
-
-        ; interrupt vectors
-        jsr jump_table
-
         ; seed 
 
         lda #$A8
@@ -1014,16 +1004,15 @@ init:
         lda #$24
         sta bios_beat + 1
 
-
-        ; setup tick
+        ; setup beat
 
         lda #00
-        sta bios_tick + 0 
-        sta bios_tick + 1
-        sta bios_tick + 2 
-        sta bios_tick + 3 
+        sta bios_beat + 0 
+        sta bios_beat + 1
+        sta bios_beat + 2 
+        sta bios_beat + 3 
 
-        jsr tick_init
+        jsr beat_init
 
         ; enable interrupts
 
@@ -1052,6 +1041,39 @@ jump_irq:
 ; ends list 
 ;
 
+.byte $DE,$AD,$C0,$DE
+
+;--------------------------------------------------------
+; for easy init list bios functions entry point
+; for easy copy to JUMPS page
+bios_list_rom:
+
+.word $0000
+.word bios_nmi        
+.word bios_irq
+.word bios_rst
+
+.word acia_init
+.word acia_txq
+.word acia_rxq
+.word acia_tx
+.word acia_rx
+
+.word via_init  
+.word beat_init
+.word beat_start
+.word beat_stop
+.word beat_clear
+
+.word tia_init
+.word tone_init
+
+
+.word randomize
+.word roulette
+bios_list_end:
+
+;----------------------------------------------------------------------
 end_of_code:
 
 .if 0
