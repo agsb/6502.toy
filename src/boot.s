@@ -34,9 +34,8 @@
 ;	not so minimal bios for 6502.toy
 ;
 ;       reserved RAM:
-;       $40 bytes at $000 page zero
-;       $40 bytes at $100 page one
-;       $100 bytes at $400 
+;       $40 bytes at $0000 page zero
+;       $40 bytes at $0100 page one
 ;       $1000 free for users
 ;       
 ;--------------------------------------------------------
@@ -65,7 +64,7 @@
 ;   
 ;        $0400 page qua, free
 ;         
-;        $1000-$E7FF 56 kb user
+;        $1000-$DFFF 56 kb user
 ;
 ;#### exclusive ROM
 ;
@@ -91,15 +90,23 @@
 ;
 ;### ROM
 ;        
-;        $E000 to $FFFF  7.75k ROM 
+;       $E000 to $FFFF  7.75k ROM 
 ;
-;        At boot:
+;       At boot:
 ;        
-;        1. Copy the NMI/IRQ address to page $0400. 
+;       1. Copy the NMI/IRQ address to page $0200.
 ;
-;        2. Copy I2C EEPROM to $1000 and jump ($1000). 
+;       2. Post
 ;
-;        4. Shadow BIOS stay at $F100 to $FFFF.
+;       3. Initialize CIA, VIA, TIA
+;
+;       4. Load Forth and prompt
+;
+;       Extras ?
+;
+;       5. Copy I2C EEPROM to $1000 and jump ($1000). 
+;
+;       6. Shadow BIOS to SRAM.
 ;
 ;### Interrupts
 ;
@@ -113,10 +120,12 @@
 ;
 ;        - try do not make recursive routines.
 ;
+;        - try do not make self modify routines.
+;
 ;        - using RAM for random access memory, as static ram with read and write.
 ;
-;        - using ROM for read only memory, as flash eeprom parallel. NO WRITE.
-;        
+;        - using ROM for read only memory, as flash eeprom parallel, just read.
+;
 ;        - using REM for regular eeprom memory, as flash eeprom with I2C protocol.
 ;
 ;### Todo
@@ -248,11 +257,10 @@
 .segment "ZERO"
 
 ;--------------------------------------------------------
-; $000 to $03F, reserved for bios
+; reserved for bios
 * = $000
 
-; bios_tick, must be bytes :)
-; ~49,7 days in milliseconds
+; bios_tick, must be bytes ; ~49,7 days in milliseconds
 bios_tick:      .byte $0, $0, $0, $0 
 
 ; bios service interrupt saves, BRK
@@ -271,7 +279,7 @@ bios_into:      .word $0
 bios_many:      .word $0
 
 ;
-user_page_zero:
+page_zero_used:
 
 ;----------------------------------------------------------------------
 ; $0100 to $013F, reserved for bios
@@ -281,7 +289,7 @@ user_page_zero:
 ;
 ;       $140 to $1FF    for user
 ;
-user_page_one:
+page_one_used:
 
 ;----------------------------------------------------------------------
 .segment "CODE"
@@ -292,6 +300,8 @@ user_page_one:
 
     JUMPS = $0200
 
+page_two_used:
+
 ;----------------------------------------------------------------------
 * = $0300
 ; bios variables
@@ -299,9 +309,9 @@ user_page_one:
 bios_void:      .word $0, $0
 bios_seed:      .byte $0, $0, $0, $0
 
-bios_tone:      .byte $0, $0 
-bios_beat:      .byte $0, $0 
-bios_acia:      .byte $0, $0
+bios_tone:      .word $0, $0 
+bios_beat:      .word $0, $0 
+bios_acia:      .word $0, $0
 
 bios_tmp0:      .word $0
 bios_tmp1:      .word $0
@@ -312,124 +322,32 @@ bios_tmp5:      .word $0
 bios_tmp6:      .word $0
 bios_tmp7:      .word $0
 
+bios_buffer:
+    .res 128
+
+page_tri_used:
+
 ;--------------------------------------------------------
 ;
 .segment "ONCE"
 
-* = $E000
 
 ;--------------------------------------------------------
-;   boot code
-; * = $FF00
+;   bios code
 * = $E000
-
-RST_VEC:
-
-rst_init:
-
-; real  init:
-init:
-        
-        ; disable interrupts
-        sei
-
-        ;0x0 wise
-        cld
-        
-        ; prepare bios stack
-        ldx #($40 -1)
-        txs
-
-        ; alive
-        jsr beep
-
-        ; post, verify hardware 
-        jsr post
-
-        ; %0001 1111 = 19200 baud, external receiver, 8 bit, 1 stop bit
-        lda #$1F     
-        sta bios_acia + 0
-        
-        ; %0000 1011 = no parity, normal mode, RTS low, INT disable, DTR low 
-        lda #$0B     
-        sta bios_acia + 1
-
-        ; setup acia one
-        jsr acia_init
-
-        ; setup via one
-        jsr via_init  
-
-        ; setup via two 
-        jsr tia_init
-
-        ; setup tone
-        jsr tone_init
-
-        ; alive
-        jsr beep
-
-        ; copy REM to RAM
-        jsr copy_eep     
-
-        ; alive
-        jsr beep
-
-        ; interrupt vectors
-        jsr jump_table
-
-        ; seed 
-
-        lda #$A8
-        sta bios_seed + 0
-        lda #$02
-        sta bios_seed + 1
-        lda #$67
-        sta bios_seed + 2
-        lda #$B1
-        sta bios_seed + 3
-
-        ; phi2 is 0.9216 (1.8432/2) MHz, 10ms is 9216 or $2400
-
-        lda #$00
-        sta bios_beat + 0
-        lda #$24
-        sta bios_beat + 1
-
-        ; setup tick
-        jsr tick_init
-
-        ; enable interrupts
-
-        cli
-
-        ; insanity for safety
-
-        jmp cold
-
-;--------------------------------------------------------
-; alias at page 
-; hold the references for interrupt routines
-
-jump_nmi:
-        nop
-        jmp ($0202)
-jump_irq:
-        nop
-        jmp ($0204)
 
 ;--------------------------------------------------------
 ;   prepare jump table
 jump_table:
 
-        lda #<NMI_VEC
+        lda #<bios_nmi
         sta JUMPS + 2
-        lda #>NMI_VEC
+        lda #>bios_nmi
         sta JUMPS + 3
 
-        lda #<IRQ_VEC
+        lda #<bios_irq
         sta JUMPS + 4
-        lda #>IRQ_VEC
+        lda #>bios_irq
         sta JUMPS + 5
 
         rts
@@ -517,11 +435,15 @@ post:
         rts
 
 @fail:
+        txa
+        tay
+@loops:
         jsr beep
+        dey
+        bne @loops
+
         clc
         bcc @fail
-
-.end
 
 ;--------------------------------------------------------
 ; copy default eeprom to RAM
@@ -585,6 +507,7 @@ bios_clock:
 bios_soft_ends:
         ldy bios_y
         ldx bios_x
+
 bios_hard_ends:
         lda bios_a
         cli
@@ -605,7 +528,7 @@ bios_init_easy:
         ; bne bios_soft_endsasy
 
 ;--------------------------------------------------------
-bios_soft_end_easy:
+bios_soft_easy:
         ;
         ; from a BRK, a software interrupt
         ; which always called as:
@@ -641,14 +564,17 @@ bios_hard_easy:
         bit VIA_IFR
         bpl @scan_tia
         jmp service_via
+
 @scan_tia:
         bit TIA_IFR
         bpl @scan_cia
         jmp service_tia
+
 @scan_cia:
         lda CIA_STAT
         bpl @scan_panic
         jmp service_cia
+
 @scan_panic:
         ; forgot voids
         pha
@@ -670,7 +596,12 @@ service_tia:
         sta TIA_IFR;
         jmp bios_hard_ends
 
+;----------------------------------------------------------------------
+
+.byte $DE,$AD,$C0,$DE
+
 ;--------------------------------------------------------
+; zzzz
 ;    attend interrupt 
 service_cia:
         pha
@@ -684,12 +615,12 @@ acia_init:
         ; reset CIA
         lda #0
         sta CIA_STAT
-        ; %0001 1110 =  9600 baud, external receiver, 8 bit , 1 stop bit
+        ; %0001 1111 =  9600 baud, external receiver, 8 bit , 1 stop bit
         ; %0001 1111 = 19200 baud, external receiver, 8 bit , 1 stop bit
-        lda #$1F     
+        lda bios_acia + 0
         sta CIA_CTRL
         ; %0000 1011 = no parity, normal mode, RTS low, INT disable, DTR low 
-        lda #$0B     
+        lda bios_acia + 1
         sta CIA_COMM
         rts
 
@@ -744,7 +675,7 @@ putch:
         rts
 
 ;--------------------------------------------------------
-; internal delay
+; internal delay, depends on phi2
 delay:
         txa
         ldx #$FF
@@ -756,6 +687,10 @@ delay:
         tax
         rts
 
+;----------------------------------------------------------------------
+
+.byte $DE,$AD,$C0,$DE
+
 ;--------------------------------------------------------
 ;   via init, I2C, SPI, LCD, KBD, 
 ;
@@ -766,7 +701,7 @@ delay:
 ;	pa1 sda, pa0 scl
 ;
 ;	pb1 lcd4, pb2 lcd5, pb3 lcd6, 
-;       pb4 lcd7, pb5 lcdR, pb6 lcdE
+;   pb4 lcd7, pb5 lcdR, pb6 lcdE
 ;
 via_init:
         lda #%01101100            
@@ -787,17 +722,23 @@ tone_init:
         rts
 
 ;--------------------------------------------------------
-; also restart interrupt
+; zzzz
+; play tone, duration
+; also restart
 tone_play:
         sty bios_y
         tay
         ; store counter
-        lda tone_lsb, y
+        lda bios_tone + 0, y
         sta VIA_T2CL
-        lda tone_msb, y
+        lda bios_tone + 1, y
         sta VIA_T2CH
         ldy bios_y
         rts
+
+;----------------------------------------------------------------------
+
+.byte $DE,$AD,$C0,$DE
 
 ;--------------------------------------------------------
 ;
@@ -816,37 +757,44 @@ tick_init:
         and #$7F    ;   %01111111
         ora #$40    ;   %01000000
         sta VIA_ACR
-        ; fall throught
+
+        rts
 
 ;--------------------------------------------------------
 ; start tick, zzzz
-tick_start:    
+tick_start:
+        pha
         lda VIA_IER
         and #$7F   ;    %01111111
         ora #$60   ;    %01100000
         sta VIA_IER
+        pla
         rts
 
 ;--------------------------------------------------------
 ; stop tick, zzzz    
 tick_stop:
+        pha
         ; lda #%10000000
         lda VIA_IER
         and #$7F    ;   %01111111
         ora #$80    ;   %10000000
         sta VIA_IER
+        pla
         rts
 
 ;--------------------------------------------------------
 ; clear tick    
-tick_zero:
+tick_clear:
+        pha
         jsr tick_stop
         lda #$00
         sta bios_tick+0
         sta bios_tick+1
         sta bios_tick+2
         sta bios_tick+3
-        jsr tick_start
+        ; jsr tick_start
+        pla
         rts
 
 ;--------------------------------------------------------
@@ -935,11 +883,12 @@ randomize:
     	sta bios_seed + 3
 
         pla
+
 	rts
 
 ;----------------------------------------------------------------------
-;0-32-15-19-04-21-02-25-17-34-06-27-13-36-11-30-08-23-10
-; -05-24-16-33-01-20-14-31-09-22-18-29-07-28-12-35-03-26
+;00-32-15-19-04-21-02-25-17-34-06-27-13-36-11-30-08-23-10
+;  -05-24-16-33-01-20-14-31-09-22-18-29-07-28-12-35-03-26
 roulette:
         pha
         tya
@@ -949,11 +898,13 @@ roulette:
         lda bios_seed + 0
         cmp #$93        ; valid 0 to 147, 148/256 repeat ~42%
         bpl @loop
+
         ror 
         ror 
         tay
         lda roulette_wheel, y
         sta bios_seed + 0
+@ends:
         pla
         tay
         pla
@@ -990,23 +941,120 @@ shift_rs:
         .res $FF, $FF
 
 ;--------------------------------------------------------
-; at $FFFA
-.segment "VECTORS"
+;   boot code
+* = $FF00
 
-; hardware jumpers
-NMI_ROM:
-.addr jump_nmi   ; fa ROM NMI vector
-RST_ROM:
-.addr jump_rst   ; fc ROM Reset vector
-IRQ_ROM:
-.addr jump_irq   ; fe ROM IRQ/BRK vector
+jump_rst:
+rst_init:
+init:
+        
+        ; disable interrupts
+        sei
+
+        ;0x0 wise
+        cld
+        
+        ; prepare bios stack
+        ldx #($40 -1)
+        txs
+
+        ; alive
+        jsr beep
+
+        ; power on self test 
+        jsr post
+
+        ; %0001 1111 = 19200 baud, external receiver, 8 bit, 1 stop bit
+        lda #$1F     
+        sta bios_acia + 0
+        
+        ; %0000 1011 = no parity, normal mode, RTS low, INT disable, DTR low 
+        lda #$0B     
+        sta bios_acia + 1
+
+        ; setup acia one
+        jsr acia_init
+
+        ; setup via one
+        jsr via_init  
+
+        ; setup via two 
+        jsr tia_init
+
+        ; setup tone
+        jsr tone_init
+
+        ; alive
+        jsr beep
+
+        ; copy REM to RAM
+        ; jsr copy_eep     
+
+        ; alive
+        jsr beep
+
+        ; interrupt vectors
+        jsr jump_table
+
+        ; seed 
+
+        lda #$A8
+        sta bios_seed + 0
+        lda #$02
+        sta bios_seed + 1
+        lda #$67
+        sta bios_seed + 2
+        lda #$B1
+        sta bios_seed + 3
+
+        ; phi2 is 0.9216 (1.8432/2) MHz, 10ms is 9216 or $2400
+
+        lda #$00
+        sta bios_beat + 0
+        lda #$24
+        sta bios_beat + 1
+
+
+        ; setup tick
+
+        lda #00
+        sta bios_tick + 0 
+        sta bios_tick + 1
+        sta bios_tick + 2 
+        sta bios_tick + 3 
+
+        jsr tick_init
+
+        ; enable interrupts
+
+        cli
+
+        ; insanity for safety
+
+@loop:
+        jsr $1000
+
+        jmp @loop
+
+;--------------------------------------------------------
+; alias at page 
+
+jump_nmi:
+        nop
+        jmp ($0202)
+
+jump_irq:
+        nop
+        jmp ($0204)
+
 
 ;----------------------------------------------------------------------
 ; ends list 
 ;
 
 end_of_code:
-.end
+
+.if 0
 
 ;-----------------------------------------------------------------------
 ; extras for 6502
@@ -1055,3 +1103,7 @@ nmos :
  BEEP Off:
 
  STZ $600b       ;VIA ACR ;No more beep! 
+ 
+ .endif
+
+
