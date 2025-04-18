@@ -1,0 +1,140 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "124d7503-2bca-482f-babc-28890d47b75d")
+	(paper "A4")
+	(lib_symbols)
+	(sheet
+		(at 21.59 21.59)
+		(size 62.865 50.165)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "144f22e8-de64-4410-8d5f-624589cfd7b4")
+		(property "Sheetname" "most"
+			(at 21.59 20.8784 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "6502.toy.most.kicad_sch"
+			(at 21.59 72.3396 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "6502.diy.toy"
+				(path "/124d7503-2bca-482f-babc-28890d47b75d"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 173.99 22.86)
+		(size 62.865 48.26)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "2aa8d9eb-6e4e-44b0-8a1f-850c99b757db")
+		(property "Sheetname" "glue2"
+			(at 173.99 22.1484 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "6502.toy.glue2.kicad_sch"
+			(at 173.99 71.7046 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "6502.diy.toy"
+				(path "/124d7503-2bca-482f-babc-28890d47b75d"
+					(page "4")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 95.885 22.225)
+		(size 62.865 48.26)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "721a6e7e-0048-485f-88c9-cb8a9a3561a0")
+		(property "Sheetname" "glue1"
+			(at 95.885 21.5134 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "6502.toy.glue1.kicad_sch"
+			(at 95.885 71.0696 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "6502.diy.toy"
+				(path "/124d7503-2bca-482f-babc-28890d47b75d"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)
