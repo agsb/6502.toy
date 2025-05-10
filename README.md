@@ -168,7 +168,7 @@ A module for 8 x 32k HM62256 SRAMs, selected by a 74HC138 and some control glue 
 4. a bios call does active the default bank-1, on board and disables expansion;
 6. a bios call does active another 32k memory of bank-2 to bank-9 at 0x0000;
 
-PS. Note that, page zero and page one, changes with banks :) Context switch for Tasks
+PS. Note that, page zero and page one, changes with banks; Provides context switch for tasks; Also the 0x8000-0xDFFF could be used as shared memory inter-tasks; 
 
 
 ## Links
