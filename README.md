@@ -56,7 +56,7 @@ The 6502's default frequency of about 1 MHz is merely illustrative, compared to 
    
 The USART is at 9600/19200 bps, 8-N-1, duplex. fixed, no changes.
 
-The I2C EEPROM used as Hard Disk, 1k block, 64 bytes (screens).
+The I2C EEPROM used as permanent storage, 1 kb blocks, 64 bytes screens.
         
 All devices are CMOS and 5V capable.        
 
@@ -66,21 +66,21 @@ Test NMOS-6502, CMOS-65C02,
 
 The actual memory map will be 56k SRAM $0000-$DFFF, 256b Devices $E000-$E0FF and $E100-$FFFF 8k ROM. 
 
-The board will have one 6551 ACIA and two 6522 VIA inside, with expansion of more 4 devices.
+The board will have one 6551 ACIA and one 6522 VIA inside, with expansion of more devices.
 
-The devices are mapped at $E000 to $E0FF, reserving 16 bytes for control for each device. 
+The devices are mapped at $E000 to $E0FF, reserving 16 bytes for control for each of 16 devices.
 
-Also using a 3:8 74HC138 decoder, with $0 reserved, $1 ACIA, $2 VIA, $3 VIA, onboard and $4 to $7 at expansion.
+Also using a 3:8 74HC138 decoder, with $0 reserved, $1 ACIA, $2 VIA, $3 reserved, onboard and $4 to $7 for expansion.
 
-A clock board by crystal of 1.8432 for CIA and by 74HC74 of 0.9612 for CPU, with a Real Timer Click as NMI with 10ms delay using a VIA T1 timer.
+A clock board by crystal of 1.8432 MHz for CIA and by 74HC74 of 0.9612 MHz for CPU, with a Real Timer Click as NMI with 10ms delay using a VIA T1 timer.
 
-No video or keyboard, using terminal at USART 19200 8N1, RS-232, vt-100.
+No video or keyboard, using terminal at USART 9600/19200 8N1, RS-232, vt-100.
 
 Using a LCD 16x4 by I2C, a keyboard with 6/12 keys, a beeper, a speaker and a pool of leds, for minimal use.
 
 Using I2C and SPI protocols and devices. 
 
-The board have 2 x 8-pins slots for I2C epproms.
+The board have two extra 8-pins DIPs slots for I2C epproms.
 
 Use MicroChip AARDVARK connector, interface I2C and SPI
 
@@ -155,6 +155,20 @@ The Forth uses RAM from $1000 to $DFFF, $00D0-$00DF 16 bytes at page zero and ??
 3. Other: The initial memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
 
 PS. Note the fixed SRAM is named SRAM-0 and hold at 0x8000 to 0xFFFF, with 256 bytes for devices and shadow the 0xE00 to 0xFFF from EEPROM. This alllows use the A15 line as selector.
+
+## Modules
+
+### Memory banks
+
+A module for 8 x 32k HM62256 SRAMs, selected by a 74HC138 and some control glue logics.
+
+1. at boot both SRAM-0 and SRAM-1 onboard must be selected;
+2. at boot the expansion module is not active but could be checked if plugged;
+3. the bank-0 is always active, at 0x8000, selected by A15
+4. a bios call does active the default bank-1, on board and disables expansion;
+6. a bios call does active another 32k memory of bank-2 to bank-9 at 0x0000;
+
+PS. Note that, page zero and page one, changes with banks :) Context switch for Tasks
 
 
 ## Links
