@@ -33,12 +33,12 @@ PS.
 
         - 01 x NMOS 6502 (or CMOS 65C02),
         - 01 x AT28C64
-        - 01 x 62256,
+        - 02 x HM62256,
         - 02 x AT24LC512, 
-        - 02 x CMOS 6522
+        - 01 x CMOS 6522
         - 01 x CMOS 6551
         - 02 x 74HC00,
-        - 02 x 74HC32,
+        - 01 x 74HC27,
         - 01 x 74HC10,
         - 01 x 74HC74,
         - 01 x 74HC138,
@@ -54,7 +54,7 @@ PS.
 
 The 6502's default frequency of about 1 MHz is merely illustrative, compared to the 3.6 GHz of current CPUs.
    
-The USART is at 19200 bps, 8-N-1, duplex. fixed, no changes.
+The USART is at 9600/19200 bps, 8-N-1, duplex. fixed, no changes.
 
 The I2C EEPROM used as Hard Disk, 1k block, 64 bytes (screens).
         
@@ -76,11 +76,13 @@ A clock board by crystal of 1.8432 for CIA and by 74HC74 of 0.9612 for CPU, with
 
 No video or keyboard, using terminal at USART 19200 8N1, RS-232, vt-100.
 
-Using a LCD 16x4 by I2C, a keyboard with 6 keys, a beeper, a speaker and a pool of leds, for minimal use.
+Using a LCD 16x4 by I2C, a keyboard with 6/12 keys, a beeper, a speaker and a pool of leds, for minimal use.
 
 Using I2C and SPI protocols and devices. 
 
 The board have 2 x 8-pins slots for I2C epproms.
+
+Use MicroChip AARDVARK connector, interface I2C and SPI
 
 Use [UEXT](https://en.wikipedia.org/wiki/UEXT) interface for USART, I2C, SPI, 3V3
 
@@ -93,7 +95,7 @@ Use [65SIB](http://forum.6502.org/viewtopic.php?t=1064&start=105) for alternativ
 
 Use a BIOS and Forth, 
 
-Use USART for VT100 terminal, Tera-Term or PuTTy at computer.
+Use USART for VT100 terminal, FDDI/USB for Tera-Term or PuTTy at computer.
 
 ### Bios
 
@@ -146,11 +148,14 @@ The Forth uses RAM from $1000 to $DFFF, $00D0-$00DF 16 bytes at page zero and ??
 
 ## Ideas
 
-1. Use 32k SRAM-0 + 32k SRAM-1 + 8k EEPROM (shadow) and devices. Basic Boot.
+1. Boot: Use 32k SRAM-1 + 32k SRAM-0 + 8k EEPROM (shadow) and devices. Two HM62256 and a AT28C64.
 
-2. Use 32k SRAM-0 + banks x 32k SRAM-N over 0x0000 to 0x7FFF, + 32k SRAM-1 fixed.
+2. Oper: Use 32k SRAM-1 + banks x 32k SRAM-N over 0x0000 to 0x7FFF, mapped by PB0-PB3 of 6522, + 32k SRAM-0 fixed, eeprom shadow at last 8k. Each bank is a task and fixed RAM as shared memory; 
 
-3. The initial memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
+3. Other: The initial memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
+
+PS. Note the fixed SRAM is named SRAM-0 and hold at 0x8000 to 0xFFFF, with 256 bytes for devices and shadow the 0xE00 to 0xFFF from EEPROM. This alllows use the A15 line as selector.
+
 
 ## Links
 
