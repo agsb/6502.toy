@@ -146,9 +146,9 @@ The Forth uses RAM from $1000 to $DFFF, $00D0-$00DF 16 bytes at page zero and ??
 
 ## Ideas
 
-1. Use 32k SRAM + 32k SRAM + 8k EEPROM (shadow) and devices
+1. Use 32k SRAM-0 + 32k SRAM-1 + 8k EEPROM (shadow) and devices. Basic Boot.
 
-2. Use 32k SRAM-0 + banks x 16k SRAM-N + 8k SRAM-0 + 8k EEPROM and devices
+2. Use 32k SRAM-0 + banks x 32k SRAM-N over 0x0000 to 0x7FFF, + 32k SRAM-1 fixed.
 
 3. The initial memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
 
