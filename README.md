@@ -17,9 +17,9 @@ This is a board for learn and testing the version for 6502 of Minimal Indirect T
 PS.
 
 - [Ben Eater](https://www.youtube.com/watch?v=LnzuMJLZRdU) made a revival of 6502. 
-- using ROM, for read-only memory, never changed
-- using RAM, for random access memory, ever changed
-- using REM, for regular eeprom memory, could changed (I2C, SPI, etc)
+- using ROM, for read-only memory, never changes
+- using RAM, for random access memory, ever changes
+- using REM, for regular eeprom memory, could change (I2C, SPI, etc)
         
 ## Road Map
 
