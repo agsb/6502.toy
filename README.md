@@ -8,6 +8,8 @@ _I seek for learn, not for speed._
 
 I had an Apple II. The Furby was a two 6502 'like' toy. I want make a SBC minimal as my toy.
 
+We know the Terminator’s main CPU is a 6502.
+
 There are many "clones" [Ben Eater](https://eater.net/6502), [Mike](https://github.com/mike42/6502-computer), [Maarten](https://github.com/maarten-pennings/6502/tree/master), [Grant](http://searle.x10host.com/6502/Simple6502.html), [Álvarez](https://www.ele.uva.es/~jesus/6502copy/proto.html) and others.
 
 And a Great support from [6502.org](http://6502.org/) forum and [Wilson Mines Co](http://wilsonminesco.com/).
