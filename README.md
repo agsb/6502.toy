@@ -176,6 +176,10 @@ PS. Note that, page zero and page one, changes with banks; Provides context swit
 
 Use a ATmega328 with RST, RX, TX, GND, PWR, with a serial conector and direct conection (lines) for 16 keys switches, in split format.
 
+### FAT32 SD 
+
+All support for SD FAT32 borrow from [SDCARD6502](https://github.com/gfoot/sdcard6502/tree/master)
+
 ## Links
 
 https://6502.org
