@@ -22,7 +22,8 @@ LOADD = 0300
 
 $(MY): $(SOURCES:.s=.o) $(MY).cfg
 
-	$(LD) $(LDFLAGS) -C $@.cfg -Ln $@.lbl \
+	$(LD) $(LDFLAGS) \
+	-C $@.cfg -Ln $@.lbl \
 	-l $@.lst -m $@.map -o $@.out $@.s \
 	2> err | tee out
 
@@ -46,5 +47,17 @@ run:
 	run6502 -l $(LOADD) $(MY).out -c \
 		-R $(LOADD) -M E000 -X 0 \
 		# -d 200 1000
+
+sym:
+	ca65 -t sim6502 \
+	--cpu 6502 --memory-model near \
+	--debug --debug-info \
+	-l $(MY).lst \
+	-o $(MY).out $(MY).s \
+	2> err | tee out
+	# --no-target-lib --target none  \
+	# -C $@.cfg \
+	# -Ln $@.lbl \
+	# -m $@.map \
 
 

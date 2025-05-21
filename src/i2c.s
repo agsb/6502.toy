@@ -36,25 +36,28 @@
 
 	; must be at zero page
 
-	; start address 
-	REM_PTR = bios_from
+        ;start address 
+	REM_PTR = bios_tmp1
 	
         ; start address 
-	RAM_PTR = bios_into
+	RAM_PTR = bios_tmp2
 	
         ; length to copy
-	LEN_PTR = bios_many
+	LEN_PTR = bios_tmp3
 
-   ; which device 
+        ; which device 
 	DEVP = bios_tmp4 + 0
-   ; read or write
+        
+        ; read or write
 	SENS = bios_tmp4 + 1
-   ; page size
+        
+        ; page size
 	PAGE = bios_tmp5 + 0
-   ; hold for shift
+        
+        ; hold for shift
 	BYTE = bios_tmp5 + 1
 
-   ; list devices found
+        ; list devices found
         BUFFER = bios_buffer
 
 ;----------------------------------------------------------------------
