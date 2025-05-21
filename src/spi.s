@@ -1,6 +1,13 @@
 ; 
 ;       modified by @agsb 08/11/2024
 ;
+;    https://www.asinine.nz/2022-06-24/6502-part5/
+;    There are a few strange things to be aware of:
+;    Always output a $FF byte after changing the Chip Select (CS) line high or low.
+;    Always output an $FF after a command.
+;    If in doubt just send an $FF byte.
+
+;
 ; Copyright (c) 2015, Dieter Hauer
 ; All rights reserved.
 ; 
@@ -24,14 +31,6 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-	.setcpu		"6502"
-		
-;	.export _spiRead
-;	.export _spiWrite
-;	.export _spiBegin
-;	.export _spiEnd
-;	.export _spiInit
-		
 	VIA1_BASE   = $8100
 	PRA  = VIA1_BASE+1
 	DDRA = VIA1_BASE+3
