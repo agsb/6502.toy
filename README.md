@@ -25,7 +25,7 @@ PS.
         
 ## Road Map
 
-- make all circuit plans
+- make all circuit plans (W.I.P.)
 - make a eeprom programmer like [Ben Eater](https://github.com/beneater/eeprom-programmer), but using arduino nano and change pins used.
 - make a nop circuit to test cpus, using a arduino mini and [clockvar6502](https://github.com/maarten-pennings/6502/blob/master/1clock/clockvar6502)
         
@@ -34,29 +34,36 @@ PS.
 ### B.O.M
 
         - 01 x NMOS 6502 (or CMOS 65C02),
-        - 01 x AT28C64
-        - 02 x HM62256,
-        - 02 x AT24LC512, 
-        - 01 x CMOS 6522
-        - 01 x CMOS 6551
-        - 02 x 74HC00,
-        - 01 x 74HC27,
-        - 01 x 74HC10,
-        - 01 x 74HC74,
-        - 01 x 74HC138,
-        - 04 x 3k3 Ohm,
-        - n x  0.1 uF,
-        - 02 x 4.7 uF,
+        - 01 x AT28C64, 8kb EEPROM
+        - 02 x HM62256, 32kb SRAM
+
+        - 01 x CMOS 6522, VIA Interface
+        - 01 x CMOS 6551, CIA Interface
+
+        - 02 x 74HC00, 4x2 NAND
+        - 01 x 74HC04, 6x NOT
+        - 01 x 74HC27, 3x3 NOR
+        - 01 x 74HC10, 3x3 NAND
+        - 01 x 74HC74, 2x D-FlipFlop
+        - 01 x 74HC138, 3:8 DeMux
+
+        - 08 x 3k3 Ohm, common pull-up
+        - 08 x 10k0 Ohm,  weak pull-up
+        - n x  0.1 uF, decoupling
+        - 02 x 4.7 uF, buffer
         - 01 x crystal 1.8432 MHz,
-        - 01 x  TS1813
+        - 01 x  TS1813, reset delay
+
         - n  x color leds,
         - n  x small resistors,
 
+        - 02 x AT24LC512, 64kb I2C EEPROM
+
 ## Topics
 
-The 6502's default frequency of about 1 MHz is merely illustrative, compared to the 3.6 GHz of current CPUs.
+The 6502's default frequency of about 1 MHz is merely illustrative compared to the 3.6 GHz of current CPUs.
    
-The USART is at 9600/19200 bps, 8-N-1, duplex. fixed, no changes.
+The USART is at 9600/19200 bps, 8-N-1, duplex. 
 
 The I2C EEPROM used as permanent storage, 1 kb blocks, 64 bytes screens.
         
@@ -66,7 +73,7 @@ Use wire wrap.
 
 Test NMOS-6502, CMOS-65C02,
 
-The actual memory map will be 56k SRAM $0000-$DFFF, 256b Devices $E000-$E0FF and $E100-$FFFF 8k ROM. 
+The actual memory map will be 56k SRAM $0000-$DFFF, 8k EEPROM $E000-$FFFF and $FE00-$FEFF 256b for devices. 
 
 The board will have one 6551 ACIA and one 6522 VIA inside, with expansion of more devices.
 
@@ -74,7 +81,9 @@ The devices are mapped at $E000 to $E0FF, reserving 16 bytes for control for eac
 
 Also using a 3:8 74HC138 decoder, with $0 reserved, $1 ACIA, $2 VIA, $3 reserved, onboard and $4 to $7 for expansion.
 
-A clock board by crystal of 1.8432 MHz for CIA and by 74HC74 of 0.9612 MHz for CPU, with a Real Timer Click as NMI with 10ms delay using a VIA T1 timer.
+A clock board by crystal of 1.8432 MHz for CIA and by 74HC74 of 0.9612 MHz for CPU.
+
+A beat tick as NMI with 10ms delay using VIA T1 timer.
 
 No video or keyboard, using terminal at USART 9600/19200 8N1, RS-232, vt-100.
 
@@ -92,8 +101,9 @@ Use [65SIB](http://forum.6502.org/viewtopic.php?t=1064&start=105) for alternativ
 
 ## Software
 
-                At boot BIOS does have all functions and loads a monitor to RAM, or 
-                At boot, the bios will copy bytes from a I2C eeprom into RAM and jump to it.
+At boot BIOS does have all functions and loads a monitor to RAM, or 
+
+At boot, the bios will copy bytes from a I2C eeprom into RAM and jump to it.
 
 Use a BIOS and Forth, 
 
@@ -150,17 +160,17 @@ The Forth uses RAM from $1000 to $DFFF, $00D0-$00DF 16 bytes at page zero and ??
 
 ## Ideas
 
-1. Boot: Use 32k SRAM-1 + 32k SRAM-0 + 8k EEPROM (shadow) and devices. Two HM62256 and a AT28C64.
+The hardware is 32k SRAM-1 + 32k SRAM-0 + 8k EEPROM (shadow) and devices. Two HM62256 and an AT28C64.
 
-2. Oper: Use 32k SRAM-1 + banks x 32k SRAM-N over 0x0000 to 0x7FFF, mapped by PB0-PB3 of 6522, + 32k SRAM-0 fixed, eeprom shadow at last 8k. Each bank is a task and fixed RAM as shared memory; 
+Common memory banks squemas are maped after the first 16kb. I plan use the first 32kb, $0000-$7FFF, for memory banks and the second 32kb, $8000-$FFFF for fixed memory space. This allow multiple tasks, one per bank, instantaneous context switch, without overhead of copy and swap, and shared buffers within tasks. 
 
-3. Other: The initial memory map was to be like an Apple II, $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
+Note the fixed SRAM is named SRAM-0 and hold at 0x8000 to 0xFFFF, with 256 bytes for devices and shadow the 0xE000 to 0xFFFF of EEPROM. This alllows use the A15 line as selector.
 
-PS. Note the fixed SRAM is named SRAM-0 and hold at 0x8000 to 0xFFFF, with 256 bytes for devices and shadow the 0xE00 to 0xFFF from EEPROM. This alllows use the A15 line as selector.
+As reference, the Apple II memory map, uses $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
 
-## Modules
+### Memory banks by 6522
 
-### Memory banks
+Use 32k SRAM-1 + banks x 32k SRAM-N over 0x0000 to 0x7FFF, mapped by PB0-PB3 of 6522, + 32k SRAM-0 fixed, eeprom shadow at last 8k. Each bank is a task and fixed RAM as shared memory; 
 
 A module for 8 x 32k HM62256 SRAMs, selected by a 74HC138 and some control glue logics.
 
@@ -170,7 +180,11 @@ A module for 8 x 32k HM62256 SRAMs, selected by a 74HC138 and some control glue 
 4. a bios call does active the default bank-1, on board and disables expansion;
 6. a bios call does active another 32k memory of bank-2 to bank-9 at 0x0000;
 
-PS. Note that, page zero and page one, changes with banks; Provides context switch for tasks; Also the 0x8000-0xDFFF could be used as shared memory inter-tasks; 
+### Memory banks illegal opcodes
+
+Use the illegal opcode 3 and B, for select SRAM BANKs of 32kb. Take SYNC, /A15, A0, A1, /A2 as selector and A3, A4, A5, A6, A7 as pseudo A15, A16, A17, A18, A19 for 32 banks of 32k, eg. two AS64008
+
+## Modules
 
 ### Keyboard minimal
 
