@@ -47,11 +47,14 @@
 ;## Memory map
 ;   
 ;       32k     $0000 to $7FFF, RAM
+;
 ;       24k     $8000 to $DFFF, RAM
 ; 
 ;        8k     $E000 to $FFFF, ROM 
 ;
-;       256     $FE00 to $FEFF, DEVICES
+;           256     $FE00 to $FEFF, DEVICES
+;
+;           256     $FF00 to $FFFF, ROM
 ;
 ;### RAM
 ;
@@ -65,13 +68,17 @@
 ;   
 ;        $0400 page qua, free
 ;         
-;        $1000-$DFFF 56 kb user
+;        $1000-$7FFF user, banked, 32kb
+;
+;        $8000-$DFFF user, shared, 24kb
 ;
 ;#### exclusive ROM
 ;
-;        $E000-$FFF9 EEPROM
+;        $E000-$FFFF EEPROM
 ;
 ;        $FE00-$FEFF DEVICES
+;
+;        $FFFA-$FFFF VECTORS
 ;
 ;### DEVICES
 ;
@@ -555,6 +562,7 @@ bios_init_easy:
         cld
         sta bios_a
 @easy:
+    ;   classics
         pla
         pha
         and #$10
