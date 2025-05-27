@@ -1,0 +1,1745 @@
+ca65 V2.19 - Git 065b0d7f9
+Main file   : main.s
+Current file: main.s
+
+000000r 1               ; vim: filetype=asm sw=8 ts=8 autoindent expandtab shiftwidth=8 et:
+000000r 1               ;-----------------------------------------------------------------------
+000000r 1               ; Copyright (c) 2023, Alvaro Gomes Sobral Barcellos
+000000r 1               ; All rights reserved.
+000000r 1               ;
+000000r 1               ; Redistribution and use in source and binary forms, with or without
+000000r 1               ; modification, are permitted provided that the following conditions
+000000r 1               ; are met:
+000000r 1               ;
+000000r 1               ; 1. Redistributions of source code must retain the above copyright
+000000r 1               ;    notice, this list of conditions and the following disclaimer.
+000000r 1               ;
+000000r 1               ; 2. Redistributions in binary form must reproduce the above copyright
+000000r 1               ;    notice, this list of conditions and the following disclaimer in
+000000r 1               ;    the documentation and/or other materials provided with the
+000000r 1               ;    distribution.
+000000r 1               ;
+000000r 1               ; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+000000r 1               ; "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+000000r 1               ; LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+000000r 1               ; FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+000000r 1               ; COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+000000r 1               ; INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+000000r 1               ; BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES, LOSS
+000000r 1               ; OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+000000r 1               ; AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+000000r 1               ; LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+000000r 1               ; ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+000000r 1               ; POSSIBILITY OF SUCH DAMAGE.
+000000r 1               ;-----------------------------------------------------------------------
+000000r 1               ;
+000000r 1               ; please vide notes.md
+000000r 1               ;
+000000r 1               ;-----------------------------------------------------------------------
+000000r 1               ;  ca65 assembler
+000000r 1               ;----------------------------------------------------------------------
+000000r 1               
+000000r 1               ; identifiers 6502
+000000r 1               
+000000r 1               .p02
+000000r 1               
+000000r 1               .feature c_comments
+000000r 1               
+000000r 1               .feature string_escapes
+000000r 1               
+000000r 1               .feature org_per_seg
+000000r 1               
+000000r 1               .feature dollar_is_pc
+000000r 1               
+000000r 1               .feature pc_assignment
+000000r 1               
+000000r 1               ; .case +
+000000r 1               
+000000r 1               ;-----------------------------------------------------------------------
+000000r 1               main:
+000000r 1               
+000000r 1               ; plugin modules
+000000r 1               
+000000r 1               init_of_boot:
+000000r 1               
+000000r 1               .include "boot.s"
+000000r 2               ; vim: filetype=asm sw=8 ts=8 autoindent expandtab shiftwidth=8 et
+000000r 2               ;-----------------------------------------------------------------------
+000000r 2               ; Copyright (c) 2023, Alvaro Gomes Sobral Barcellos
+000000r 2               ; All rights reserved.
+000000r 2               ;
+000000r 2               ; Redistribution and use in source and binary forms, with or without
+000000r 2               ; modification, are permitted provided that the following conditions
+000000r 2               ; are met:
+000000r 2               ;
+000000r 2               ; 1. Redistributions of source code must retain the above copyright
+000000r 2               ;    notice, this list of conditions and the following disclaimer.
+000000r 2               ;
+000000r 2               ; 2. Redistributions in binary form must reproduce the above copyright
+000000r 2               ;    notice, this list of conditions and the following disclaimer in
+000000r 2               ;    the documentation and/or other materials provided with the
+000000r 2               ;    distribution.
+000000r 2               ;
+000000r 2               ; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+000000r 2               ; "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+000000r 2               ; LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+000000r 2               ; FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+000000r 2               ; COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+000000r 2               ; INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+000000r 2               ; BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES, LOSS
+000000r 2               ; OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+000000r 2               ; AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+000000r 2               ; LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+000000r 2               ; ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+000000r 2               ; POSSIBILITY OF SUCH DAMAGE.
+000000r 2               ;----------------------------------------------------------------------
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ;
+000000r 2               ;	not so minimal bios for 6502.toy
+000000r 2               ;
+000000r 2               ;       reserved RAM:
+000000r 2               ;       $40 bytes at $0000 page zero
+000000r 2               ;       $40 bytes at $0100 page one
+000000r 2               ;       $1000 free for users
+000000r 2               ;
+000000r 2               ;--------------------------------------------------------
+000000r 2               ;
+000000r 2               ;# Easy BIOS for a 6502toy
+000000r 2               ;
+000000r 2               ;       64bit = +/- 9223372036854775807
+000000r 2               ;
+000000r 2               ;## Memory map
+000000r 2               ;
+000000r 2               ;       32k     $0000 to $7FFF, RAM
+000000r 2               ;
+000000r 2               ;       24k     $8000 to $DFFF, RAM
+000000r 2               ;
+000000r 2               ;        8k     $E000 to $FFFF, ROM
+000000r 2               ;
+000000r 2               ;           256     $FE00 to $FEFF, DEVICES
+000000r 2               ;
+000000r 2               ;           256     $FF00 to $FFFF, ROM
+000000r 2               ;
+000000r 2               ;### RAM
+000000r 2               ;
+000000r 2               ;        $0000 to $00FF page zero, hardware registers
+000000r 2               ;
+000000r 2               ;        $0100 to $01FF page one, hardware stack
+000000r 2               ;
+000000r 2               ;        $0200 page two, bios jump vectors
+000000r 2               ;
+000000r 2               ;        $0300 page tri, bios variables, pointers, buffers
+000000r 2               ;
+000000r 2               ;        $0400 page qua, free
+000000r 2               ;
+000000r 2               ;        $1000-$7FFF user, banked, 32kb
+000000r 2               ;
+000000r 2               ;        $8000-$DFFF user, shared, 24kb
+000000r 2               ;
+000000r 2               ;#### exclusive ROM
+000000r 2               ;
+000000r 2               ;        $E000-$FFFF EEPROM
+000000r 2               ;
+000000r 2               ;        $FE00-$FEFF DEVICES
+000000r 2               ;
+000000r 2               ;        $FFFA-$FFFF VECTORS
+000000r 2               ;
+000000r 2               ;### DEVICES
+000000r 2               ;
+000000r 2               ;        mapped onboard from dev0 to dev07 ($FE00 to $FE70):
+000000r 2               ;
+000000r 2               ;        dev00  $FE00 bios exclusive hardware reserved
+000000r 2               ;
+000000r 2               ;        dev01  $FE10 bios device 01, acia 6551, USART RS-232 TERMINAL
+000000r 2               ;
+000000r 2               ;        dev02  $FE20 bios device 02, via 6522, beat, I2C, SPI, LCD, KBD
+000000r 2               ;
+000000r 2               ;        dev03  $FE30 bios device 03, via 6522, user
+000000r 2               ;
+000000r 2               ;        dev04 to dev07 ($FE40 to $FE70) for user
+000000r 2               ;
+000000r 2               ;        for expansion board, dev08 to dev15 ($FE80 to $FEFF)
+000000r 2               ;
+000000r 2               ;### ROM
+000000r 2               ;
+000000r 2               ;       $E000 to $FFFF  7.75k ROM
+000000r 2               ;
+000000r 2               ;       At boot:
+000000r 2               ;
+000000r 2               ;       1. Copy the NMI/IRQ address to page $0200.
+000000r 2               ;
+000000r 2               ;       2. Post
+000000r 2               ;
+000000r 2               ;       3. Initialize CIA, VIA, TIA
+000000r 2               ;
+000000r 2               ;       4. Load Forth and prompt
+000000r 2               ;
+000000r 2               ;       Extras ?
+000000r 2               ;
+000000r 2               ;       5. Copy I2C EEPROM to $1000 and jump ($1000).
+000000r 2               ;
+000000r 2               ;       6. Shadow BIOS to SRAM.
+000000r 2               ;
+000000r 2               ;       7. Active page SRAM at $0000 32k banks.
+000000r 2               ;
+000000r 2               ;### Interrupts
+000000r 2               ;
+000000r 2               ;       the clock beat done by VIA T1 is the only NMI of 6502
+000000r 2               ;
+000000r 2               ;       all interrupts are /IRQ. ( note use of / for active state)
+000000r 2               ;
+000000r 2               ;### Best
+000000r 2               ;
+000000r 2               ;        - On return, the carry (zero ?) flag is 0 for Ok.
+000000r 2               ;
+000000r 2               ;        - callee saves registers.
+000000r 2               ;
+000000r 2               ;        - try do not make recursive routines.
+000000r 2               ;
+000000r 2               ;        - try do not make self modify routines.
+000000r 2               ;
+000000r 2               ;        - using RAM for random access memory, as static ram with read and write.
+000000r 2               ;
+000000r 2               ;        - using ROM for read only memory, as flash eeprom parallel, just read.
+000000r 2               ;
+000000r 2               ;        - using REM for regular eeprom memory, as flash eeprom with I2C protocol.
+000000r 2               ;
+000000r 2               ;### Todo
+000000r 2               ;
+000000r 2               ;        - a POST routine, power on self test, with beep/blink diagnostics
+000000r 2               ;
+000000r 2               ;        - check size of RAM, ROM, in 4 kb blocks, $0000..$F000
+000000r 2               ;
+000000r 2               ;        - check I2C, SPI, REM, LCD,
+000000r 2               ;
+000000r 2               ;        - responses from ACIA, VIA, TIA
+000000r 2               ;
+000000r 2               ;.ENDIF
+000000r 2               ;
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; constants
+000000r 2               ;--------------------------------------------------------
+000000r 2               ;   task states
+000000r 2               
+000000r 2                       HALT    = 0
+000000r 2                       IDLE    = 1
+000000r 2                       WAIT    = 2
+000000r 2                       BUSY    = 3
+000000r 2               
+000000r 2               ; default reset boot address
+000000r 2               
+000000r 2                       NMI_BOOT = $FFFA
+000000r 2                       RST_BOOT = $FFFC
+000000r 2                       IRQ_BOOT = $FFFE
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; using same clock of 6551 1.8432, by half a phi0
+000000r 2               ;
+000000r 2               ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
+000000r 2               ;
+000000r 2               ; used by VIA T1 which depends directly of phi2
+000000r 2               ;
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; eeprom page address
+000000r 2                       ROM = $E0
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; devices address
+000000r 2               
+000000r 2                       DEVS = $FE00
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; reserved bios interrupt
+000000r 2               
+000000r 2                       FBI  = DEVS + $00
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; sytem usart (CIA)
+000000r 2                       ; The base address of the 6551 ACIA.
+000000r 2                       CIA       =  DEVS + $10
+000000r 2                       CIA_DATA  =  CIA+0   ; Its data I/O register
+000000r 2                       CIA_RX    =  CIA+0   ; Its data I/O register
+000000r 2                       CIA_TX    =  CIA+0   ; Its data I/O register
+000000r 2                       CIA_STAT  =  CIA+1   ; Its status  register
+000000r 2                       CIA_COMM  =  CIA+2   ; Its command  register
+000000r 2                       CIA_CTRL  =  CIA+3   ; Its control  register
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; system via (VIA)
+000000r 2                       ; The base address of the primary 6522 VIA.
+000000r 2                       VIA        =  DEVS + $20
+000000r 2                       VIA_PB     =  VIA+0    ; Its port B address
+000000r 2                       VIA_PA     =  VIA+1    ; Its port A address
+000000r 2                       VIA_DDRB   =  VIA+2    ; Its data-direction register for port B
+000000r 2                       VIA_DDRA   =  VIA+3    ; Its data-direction register for port A
+000000r 2                       VIA_T1CL   =  VIA+4    ; Its timer-1 counter's low  byte
+000000r 2                       VIA_T1CH   =  VIA+5    ; Its timer-1 counter's high byte
+000000r 2                       VIA_T1LL   =  VIA+6    ; Its timer-1 latcher's low  byte
+000000r 2                       VIA_T1LH   =  VIA+7    ; Its timer-1 latcher's high byte
+000000r 2                       VIA_T2CL   =  VIA+8    ; Its timer-2 counter's low  byte
+000000r 2                       VIA_T2CH   =  VIA+9    ; Its timer-2 counter's high byte
+000000r 2                       VIA_SR     =  VIA+10   ; The shift register
+000000r 2                       VIA_ACR    =  VIA+11   ; The auxiliary  control register
+000000r 2                       VIA_PCR    =  VIA+12   ; The peripheral control register
+000000r 2                       VIA_IFR    =  VIA+13   ; The interrupt flag register
+000000r 2                       VIA_IER    =  VIA+14   ; The interrupt enable register
+000000r 2                       VIA_PAH    =  VIA+15   ; Its port A address no handshake
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; user via (TIA)
+000000r 2                       ; The base address of the secondary 6522 VIA.
+000000r 2                       TIA        =  DEVS + $30
+000000r 2                       TIA_PB     =  TIA+0    ; Its port B address
+000000r 2                       TIA_PA     =  TIA+1    ; Its port A address
+000000r 2                       TIA_DDRB   =  TIA+2    ; Its data-direction register for port B
+000000r 2                       TIA_DDRA   =  TIA+3    ; Its data-direction register for port A
+000000r 2                       TIA_T1CL   =  TIA+4    ; Its timer-1 counter's low  byte
+000000r 2                       TIA_T1CH   =  TIA+5    ; Its timer-1 counter's high byte
+000000r 2                       TIA_T1LL   =  TIA+6    ; Its timer-1 latcher's low  byte
+000000r 2                       TIA_T1LH   =  TIA+7    ; Its timer-1 latcher's high byte
+000000r 2                       TIA_T2CL   =  TIA+8    ; Its timer-2 counter's low  byte
+000000r 2                       TIA_T2CH   =  TIA+9    ; Its timer-2 counter's high byte
+000000r 2                       TIA_SR     =  TIA+10   ; The shift register
+000000r 2                       TIA_ACR    =  TIA+11   ; The auxiliary  control register
+000000r 2                       TIA_PCR    =  TIA+12   ; The peripheral control register
+000000r 2                       TIA_IFR    =  TIA+13   ; The interrupt flag register
+000000r 2                       TIA_IER    =  TIA+14   ; The interrupt enable register
+000000r 2                       TIA_PAH    =  TIA+15   ; Its port A address no handshake
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; VIA port A
+000000r 2               
+000000r 2               ;   T1 is beat, NMI interrupt /;
+000000r 2               
+000000r 2               ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
+000000r 2                       BEAT = $2400
+000000r 2               
+000000r 2               ; for USART
+000000r 2                       URX = (1 << 7)
+000000r 2                       UTX = (1 << 6)
+000000r 2               
+000000r 2               ; for SPI
+000000r 2                       MCSS = (1 << 5)
+000000r 2                       MOSI = (1 << 4)
+000000r 2                       MISO = (1 << 3)
+000000r 2                       MSCL = (1 << 2)
+000000r 2               
+000000r 2               ; for I2C, with 10k pull-up drains 1 mA
+000000r 2                       SDA  = (1 << 1)
+000000r 2                       SCL  = (1 << 0)
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; VIA port B
+000000r 2               
+000000r 2               ; T2 is beeper, IRQ interrupter /;
+000000r 2               
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ;   at page zero
+000000r 2               ;
+000000r 2               .segment "ZERO"
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ; reserved for bios
+000000r 2               * = $000
+000000  2               
+000000  2               ; for safe and sake
+000000  2  00 00        bios_void:      .word $0
+000002  2               
+000002  2               ; bios_beat, must be bytes ; ~49.710 days in milliseconds
+000002  2  00 00 00 00  bios_beat:      .byte $0, $0, $0, $0
+000006  2               
+000006  2               ; bios services, saves
+000006  2  00           bios_s:         .byte $0
+000007  2  00           bios_a:         .byte $0
+000008  2  00           bios_x:         .byte $0
+000009  2  00           bios_y:         .byte $0
+00000A  2               
+00000A  2               ; for memory moves, lda/sta (indirect), y
+00000A  2               ; dual names for easy lookup
+00000A  2               
+00000A  2               ; bios saves status BRK
+00000A  2               bios_flag:
+00000A  2  00 00        bios_tmp0:      .word $0
+00000C  2               
+00000C  2               ; bios services, memory moves
+00000C  2               bios_from:
+00000C  2  00 00        bios_tmp1:      .word $0
+00000E  2               
+00000E  2               bios_into:
+00000E  2  00 00        bios_tmp2:      .word $0
+000010  2               
+000010  2               bios_many:
+000010  2  00 00        bios_tmp3:      .word $0
+000012  2               ;
+000012  2               page_zero_used:
+000012  2               
+000012  2               ;----------------------------------------------------------------------
+000012  2               ; $0100 to $013F, reserved for bios
+000012  2               * = $0100
+000100  2               
+000100  2  00 00 00 00  .res $40, $00   ; bios_stack
+000104  2  00 00 00 00  
+000108  2  00 00 00 00  
+000140  2               
+000140  2               bios_stack = *
+000140  2               
+000140  2               ;
+000140  2               ;       $140 to $1FF    for user
+000140  2               ;
+000140  2               page_one_used:
+000140  2               
+000140  2               ;----------------------------------------------------------------------
+000140  2               .segment "CODE"
+000000r 2               
+000000r 2               ;----------------------------------------------------------------------
+000000r 2               ; bios pointers
+000000r 2               * = $0200
+000200  2               
+000200  2               bios_list:
+000200  2               
+000200  2  00 00 00 00  .res $FF, 00
+000204  2  00 00 00 00  
+000208  2  00 00 00 00  
+0002FF  2               
+0002FF  2               page_two_used:
+0002FF  2               
+0002FF  2               ;----------------------------------------------------------------------
+0002FF  2               * = $0300
+000300  2               
+000300  2               ; bios variables
+000300  2  00 00        bios_boot:      .word $0
+000302  2               
+000302  2               ; bios services
+000302  2               
+000302  2  00 00 00 00  bios_seed:      .byte $0, $0, $0, $0
+000306  2  00 00 00 00  bios_tick:      .word $0, $0, $0, $0
+00030A  2  00 00 00 00  
+00030E  2               
+00030E  2  00 00 00 00  bios_tone:      .word $0, $0
+000312  2  00 00 00 00  bios_acia:      .word $0, $0
+000316  2               
+000316  2               ; scratch area
+000316  2  00 00        bios_tmp4:      .word $0
+000318  2  00 00        bios_tmp5:      .word $0
+00031A  2  00 00        bios_tmp6:      .word $0
+00031C  2  00 00        bios_tmp7:      .word $0
+00031E  2               
+00031E  2               bios_buffer:
+00031E  2  xx xx xx xx      .res 128
+000322  2  xx xx xx xx  
+000326  2  xx xx xx xx  
+00039E  2               
+00039E  2               page_tri_used:
+00039E  2               
+00039E  2               ;--------------------------------------------------------
+00039E  2               ;
+00039E  2               .segment "ONCE"
+000000r 2               
+000000r 2               ;--------------------------------------------------------
+000000r 2               ;   generic bios code, EEPROM
+000000r 2               * = $E000
+00E000  2               
+00E000  2  DE AD C0 DE  .byte $DE,$AD,$C0,$DE
+00E004  2               
+00E004  2               ;---------------------------------------------------------------------
+00E004  2               ; jump indirect from a list, all address absolute
+00E004  2               bios_jump:
+00E004  2  BD 01 02             lda bios_list + 1, x
+00E007  2  48                   pha
+00E008  2  BD 00 02             lda bios_list + 0, x
+00E00B  2  48                   pha
+00E00C  2  08                   php
+00E00D  2  40                   rti
+00E00E  2               
+00E00E  2               ;--------------------------------------------------------
+00E00E  2               void:
+00E00E  2               
+00E00E  2               ;--------------------------------------------------------
+00E00E  2               ; BEEP FREQ DIVIDER = 461	; 1 KHz @ 921,6 kHz
+00E00E  2               ; 1 kHz is the censor TV classic
+00E00E  2               ;
+00E00E  2               ; Quindar tones 2525 Hz start, 2475 Hz stop
+00E00E  2               ; Sequences of 1% error
+00E00E  2               ; frequencies D5 523, D5 587, E5 659, F5 698, G5 784, A5 880
+00E00E  2               ; for 460, 800 kHz beat on/off
+00E00E  2               ; counters D5 881, D5 785, E5 699, F5 660, G5 588, A5 524
+00E00E  2               ;
+00E00E  2               
+00E00E  2               ;--------------------------------------------------------
+00E00E  2               ;       beep audio
+00E00E  2               beep:
+00E00E  2               
+00E00E  2               ;--------------------------------------------------------
+00E00E  2               ;       LED blinks
+00E00E  2               blink:
+00E00E  2               
+00E00E  2               ;--------------------------------------------------------
+00E00E  2               ;       TIA
+00E00E  2               bios_tia_init:
+00E00E  2               
+00E00E  2               bios_tia_service:
+00E00E  2               
+00E00E  2  60                   rts
+00E00F  2               
+00E00F  2               ;--------------------------------------------------------
+00E00F  2               ; power on self test
+00E00F  2               ; never use before reset !
+00E00F  2               ; skips first 1k of ram
+00E00F  2               post:
+00E00F  2               @test_ram:
+00E00F  2  A0 04                ldy #$04
+00E011  2  84 0F                sty bios_into + 1
+00E013  2  A0 00                ldy #$00
+00E015  2  85 0E                sta bios_into + 0
+00E017  2               @loop:
+00E017  2               ;       test one page
+00E017  2  A9 00                lda #$00
+00E019  2  91 0E                sta (bios_into), y
+00E01B  2  D1 0E                cmp (bios_into), y
+00E01D  2  D0 20                bne @fail_ram
+00E01F  2  A9 55                lda #$55
+00E021  2  91 0E                sta (bios_into), y
+00E023  2  D1 0E                cmp (bios_into), y
+00E025  2  D0 18                bne @fail_ram
+00E027  2  A9 AA                lda #$AA
+00E029  2  91 0E                sta (bios_into), y
+00E02B  2  D1 0E                cmp (bios_into), y
+00E02D  2  D0 10                bne @fail_ram
+00E02F  2  C8                   iny
+00E030  2  D0 E5                bne @loop
+00E032  2               
+00E032  2               ; end of ram ?
+00E032  2  A4 0F                ldy bios_into + 1
+00E034  2  C4 E0                cpy ROM
+00E036  2  F0 0B                beq @test_via
+00E038  2               ; nope, next then
+00E038  2                       ; jsr beep      ; maybe beep
+00E038  2  C8                   iny
+00E039  2  84 0F                sty bios_into + 1
+00E03B  2  A0 00                ldy #$00
+00E03D  2  D0 D8                bne @loop
+00E03F  2               
+00E03F  2               @fail_ram:
+00E03F  2  A2 01                ldx #01
+00E041  2  D0 19                bne @fail
+00E043  2               
+00E043  2               @test_via:
+00E043  2  AD 2E FE             lda VIA_IER
+00E046  2  C9 80                cmp #%10000000
+00E048  2  F0 04                beq @test_tia
+00E04A  2               
+00E04A  2               @fail_via:
+00E04A  2  A2 02                ldx #02
+00E04C  2  D0 0E                bne @fail
+00E04E  2               
+00E04E  2               @test_tia:
+00E04E  2  AD 3E FE             lda TIA_IER
+00E051  2  C9 80                cmp #%10000000
+00E053  2  F0 04                beq @okey
+00E055  2               
+00E055  2               @fail_tia:
+00E055  2  A2 04                ldx #04
+00E057  2  D0 03                bne @fail
+00E059  2               
+00E059  2               @okey:
+00E059  2  A2 00                ldx #00
+00E05B  2  60                   rts
+00E05C  2               
+00E05C  2               ; trap it
+00E05C  2               @fail:
+00E05C  2  8A                   txa
+00E05D  2  A8                   tay
+00E05E  2               @loops:
+00E05E  2  20 0E E0             jsr beep
+00E061  2  88                   dey
+00E062  2  D0 FA                bne @loops
+00E064  2               
+00E064  2  18                   clc
+00E065  2  90 F5                bcc @fail
+00E067  2               
+00E067  2               ;--------------------------------------------------------
+00E067  2               ; copy default eeprom to RAM
+00E067  2               ;
+00E067  2               ;   $FF00-$1000=$EF00
+00E067  2               ;   $EF00/$80 = $01DE
+00E067  2               ;   478 I2C pages of 128 bytes
+00E067  2               ;   Magics
+00E067  2               ;   rem ptr = bios tmp1
+00E067  2               ;   ram ptr = bios tmp2
+00E067  2               ;   len ptr = bios tmp3
+00E067  2               ;   device  = bios tmp4+0
+00E067  2               ;   sense   = bios tmp4+1
+00E067  2               ;   work    = bios tmp5
+00E067  2               ;
+00E067  2               ;--------------------------------------------------------
+00E067  2               copy_eep:
+00E067  2                       ; use device 0 and sense read
+00E067  2                       ; copy $E000 bytes from $1000 REM to $1000 RAM
+00E067  2  A9 00                lda #$00
+00E069  2  85 0C                sta bios_from + 0
+00E06B  2  85 0E                sta bios_into + 0
+00E06D  2  85 10                sta bios_many + 0
+00E06F  2  A9 10                lda #$10
+00E071  2  85 0D                sta bios_from + 1
+00E073  2  85 0F                sta bios_into + 1
+00E075  2  A9 E0                lda #$E0
+00E077  2  85 11                sta bios_many + 1
+00E079  2  A9 50                lda #%01010000	; hardcoded for 24LC512 at 000, will be << 1
+00E07B  2  8D 16 03             sta bios_tmp4 + 0
+00E07E  2  A9 01                lda #$01
+00E080  2  8D 17 03             sta bios_tmp4 + 1
+00E083  2  20 5A E3             jsr rem2ram_i2c
+00E086  2  60                   rts
+00E087  2               
+00E087  2               ;========================================================
+00E087  2               ; NMI, counts beats from VIA T1
+00E087  2               ;       bios_beats in zero page
+00E087  2               ;       at 1ms about 8 years
+00E087  2               bios_nmi:
+00E087  2               bios_beats:
+00E087  2                       ; for safe
+00E087  2  78                   sei
+00E088  2  2C 24 FE             bit VIA_T1CL            ; clear bit
+00E08B  2                       ; cascate counter
+00E08B  2  E6 02                inc bios_beat+0
+00E08D  2  D0 0A                bne @ends
+00E08F  2  E6 03                inc bios_beat+1
+00E091  2  D0 06                bne @ends
+00E093  2  E6 04                inc bios_beat+2
+00E095  2  D0 02                bne @ends
+00E097  2  E6 05                inc bios_beat+3
+00E099  2               @ends:
+00E099  2  58                   cli
+00E09A  2  40                   rti
+00E09B  2               
+00E09B  2               ;======================================================================
+00E09B  2               ; IRQ|BRK, handler
+00E09B  2               ; easy minimal
+00E09B  2               ;--------------------------------------------------------
+00E09B  2               bios_soft_ends:
+00E09B  2  A4 09                ldy bios_y
+00E09D  2  A6 08                ldx bios_x
+00E09F  2               
+00E09F  2               bios_hard_ends:
+00E09F  2  A5 07                lda bios_a
+00E0A1  2  58                   cli
+00E0A2  2  40                   rti
+00E0A3  2               
+00E0A3  2               ;--------------------------------------------------------
+00E0A3  2               bios_irq:
+00E0A3  2               bios_init_easy:
+00E0A3  2  78                   sei
+00E0A4  2  D8                   cld
+00E0A5  2  85 07                sta bios_a
+00E0A7  2               @easy:
+00E0A7  2                   ;   classics
+00E0A7  2  68                   pla
+00E0A8  2  48                   pha
+00E0A9  2  29 10                and #$10
+00E0AB  2  F0 07                beq bios_hard_easy
+00E0AD  2                       ; fall througth
+00E0AD  2                       ; bne bios_soft_endsasy
+00E0AD  2               
+00E0AD  2               ;--------------------------------------------------------
+00E0AD  2               bios_soft_easy:
+00E0AD  2                       ;
+00E0AD  2                       ; from a BRK, a software interrupt
+00E0AD  2                       ; which always called as:
+00E0AD  2                       ;
+00E0AD  2                       ;       ...
+00E0AD  2                       ;       brk
+00E0AD  2                       ;       .byte 00 to FF bios function code
+00E0AD  2               
+00E0AD  2                       ; ; (optional)
+00E0AD  2                       ;       parameter
+00E0AD  2                       ;       ...
+00E0AD  2                       ;       parameter
+00E0AD  2                       ;       rts
+00E0AD  2                       ;
+00E0AD  2                       ;
+00E0AD  2                       ; the PC in stack minus one is the code $ZZ
+00E0AD  2                       ; for what break was called.
+00E0AD  2                       ;
+00E0AD  2                       ; do something somewhere sometime
+00E0AD  2                       ;
+00E0AD  2                       ; general software interrupt service
+00E0AD  2               
+00E0AD  2  86 08                stx bios_x
+00E0AF  2  84 09                sty bios_y
+00E0B1  2               ;
+00E0B1  2               ;       something somewhere sometime happens here
+00E0B1  2               ;
+00E0B1  2  4C 9B E0             jmp bios_soft_ends
+00E0B4  2               
+00E0B4  2               ;--------------------------------------------------------
+00E0B4  2               ;       fall throught
+00E0B4  2               
+00E0B4  2               bios_hard_easy:
+00E0B4  2  48                   pha
+00E0B5  2               
+00E0B5  2               @scan_via:
+00E0B5  2  2C 2D FE             bit VIA_IFR
+00E0B8  2  10 03                bpl @scan_tia
+00E0BA  2  4C D0 E0             jmp service_via
+00E0BD  2               
+00E0BD  2               @scan_tia:
+00E0BD  2  2C 3D FE             bit TIA_IFR
+00E0C0  2  10 03                bpl @scan_cia
+00E0C2  2  4C D8 E0             jmp service_tia
+00E0C5  2               
+00E0C5  2               @scan_cia:
+00E0C5  2  AD 11 FE             lda CIA_STAT
+00E0C8  2  10 03                bpl @scan_next
+00E0CA  2  4C E0 E0             jmp service_cia
+00E0CD  2               
+00E0CD  2               @scan_next:
+00E0CD  2                       ; must be a entry at jump table
+00E0CD  2                       ; jsr external_irq
+00E0CD  2               
+00E0CD  2               @scan_ends:
+00E0CD  2                       ; forgot voids
+00E0CD  2  4C 9F E0             jmp bios_hard_ends
+00E0D0  2               
+00E0D0  2               ;--------------------------------------------------------
+00E0D0  2               ;    attend interrupt
+00E0D0  2               service_via:
+00E0D0  2  A9 7F                lda #$7F
+00E0D2  2  8D 2D FE             sta VIA_IFR;
+00E0D5  2  4C 9F E0             jmp bios_hard_ends
+00E0D8  2               
+00E0D8  2               ;--------------------------------------------------------
+00E0D8  2               ;    attend interrupt
+00E0D8  2               service_tia:
+00E0D8  2  A9 7F                lda #$7F
+00E0DA  2  8D 3D FE             sta TIA_IFR;
+00E0DD  2  4C 9F E0             jmp bios_hard_ends
+00E0E0  2               
+00E0E0  2               ;--------------------------------------------------------
+00E0E0  2               ;    attend interrupt
+00E0E0  2               service_cia:
+00E0E0  2  4C 9F E0             jmp bios_hard_ends
+00E0E3  2               
+00E0E3  2               ;======================================================================
+00E0E3  2               ;   acia init, configures 19200,N,8,1 default 6551
+00E0E3  2               ;
+00E0E3  2               setch:
+00E0E3  2               acia_init:
+00E0E3  2                       ; reset CIA
+00E0E3  2  A9 00                lda #0
+00E0E5  2  8D 11 FE             sta CIA_STAT
+00E0E8  2                       ; %0001 1111 =  9600 baud, external receiver, 8 bit , 1 stop bit
+00E0E8  2                       ; %0001 1111 = 19200 baud, external receiver, 8 bit , 1 stop bit
+00E0E8  2  AD 12 03             lda bios_acia + 0
+00E0EB  2  8D 13 FE             sta CIA_CTRL
+00E0EE  2                       ; %0000 1011 = no parity, normal mode, RTS low, INT disable, DTR low
+00E0EE  2  AD 13 03             lda bios_acia + 1
+00E0F1  2  8D 12 FE             sta CIA_COMM
+00E0F4  2  60                   rts
+00E0F5  2               
+00E0F5  2               ;----------------------------------------------------------------
+00E0F5  2               ;   verify RX thru 6551, no waits
+00E0F5  2               ;   zero on not
+00E0F5  2               getcq:
+00E0F5  2               acia_rxq:
+00E0F5  2                       ; verify
+00E0F5  2  AD 11 FE             lda CIA_STAT
+00E0F8  2  29 08                and #8
+00E0FA  2  60                   rts
+00E0FB  2               
+00E0FB  2               ;----------------------------------------------------------------
+00E0FB  2               ;   verify TX thru 6551, no waits
+00E0FB  2               ;   zero on not
+00E0FB  2               putcq:
+00E0FB  2               acia_txq:
+00E0FB  2                       ; verify
+00E0FB  2  AD 11 FE             lda CIA_STAT
+00E0FE  2  29 0A                and #10
+00E100  2  60                   rts
+00E101  2               
+00E101  2               ;----------------------------------------------------------------
+00E101  2               ;   receive a byte thru 6551, waits
+00E101  2               ;
+00E101  2               getch:
+00E101  2               acia_rx:
+00E101  2                       ; verify
+00E101  2  20 F5 E0             jsr acia_rxq
+00E104  2  F0 FB                beq acia_rx
+00E106  2                       ; receive
+00E106  2  AD 10 FE             lda CIA_RX
+00E109  2  18                   clc
+00E10A  2  60                   rts
+00E10B  2               
+00E10B  2               ;----------------------------------------------------------------
+00E10B  2               ;   transmit a byte thru 6551, waits
+00E10B  2               ;
+00E10B  2               putch:
+00E10B  2               acia_tx:
+00E10B  2                       ; verify
+00E10B  2  48                   pha
+00E10C  2  20 FB E0             jsr acia_txq
+00E10F  2  F0 FA                beq acia_tx
+00E111  2                       ; transmit
+00E111  2  68                   pla
+00E112  2  8D 10 FE             sta CIA_TX
+00E115  2  18                   clc
+00E116  2  60                   rts
+00E117  2               
+00E117  2               ;--------------------------------------------------------
+00E117  2               ; internal delay, depends on phi2
+00E117  2               delay:
+00E117  2  8A                   txa
+00E118  2  A2 FF                ldx #$FF
+00E11A  2               @delay:
+00E11A  2  EA                   nop
+00E11B  2  EA                   nop
+00E11C  2  CA                   dex
+00E11D  2  D0 FB                bne @delay
+00E11F  2  AA                   tax
+00E120  2  60                   rts
+00E121  2               
+00E121  2               ;--------------------------------------------------------
+00E121  2               ;   via init, I2C, SPI, LCD, KBD,
+00E121  2               ;
+00E121  2               ; 	pa7 utx, pa6 urx,
+00E121  2               ;
+00E121  2               ;	pa5 mscs, pa4 mosi, pa3 miso, pa2 msck,
+00E121  2               ;
+00E121  2               ;	pa1 sda, pa0 scl
+00E121  2               ;
+00E121  2               ;	pb1 lcd4, pb2 lcd5, pb3 lcd6,
+00E121  2               ;       pb4 lcd7, pb5 lcdR, pb6 lcdE
+00E121  2               ;
+00E121  2               via_init:
+00E121  2  A9 6C                lda #%01101100
+00E123  2  8D 23 FE             sta VIA_DDRA
+00E126  2  A9 6C                lda #%01101100
+00E128  2  8D 22 FE             sta VIA_DDRB
+00E12B  2                       ; fall throught
+00E12B  2               
+00E12B  2               ;--------------------------------------------------------
+00E12B  2               tone_init:
+00E12B  2                       ; setup free-run and interrupt at time-out
+00E12B  2  A9 55                lda #$55
+00E12D  2  8D 2A FE             sta VIA_SR
+00E130  2  AD 2B FE             lda VIA_ACR
+00E133  2  29 7F                and #$7F    ;   %01111111
+00E135  2  09 40                ora #$40    ;   %00100000
+00E137  2  8D 2B FE             sta VIA_ACR
+00E13A  2  60                   rts
+00E13B  2               
+00E13B  2               ;--------------------------------------------------------
+00E13B  2               ; runs for offsets
+00E13B  2               ; play tone, duration
+00E13B  2               ; also restart
+00E13B  2               tone_play:
+00E13B  2  84 09                sty bios_y
+00E13D  2  A8                   tay
+00E13E  2                       ; store counter
+00E13E  2  B9 0E 03             lda bios_tone + 0, y
+00E141  2  8D 28 FE             sta VIA_T2CL
+00E144  2  B9 0F 03             lda bios_tone + 1, y
+00E147  2  8D 29 FE             sta VIA_T2CH
+00E14A  2  A4 09                ldy bios_y
+00E14C  2  60                   rts
+00E14D  2               
+00E14D  2               ;--------------------------------------------------------
+00E14D  2               ;
+00E14D  2               ; clock beat, using VIA T1 free run
+00E14D  2               ; phi2 is 0.9216 MHz, 10ms is 9216 or $2400
+00E14D  2               ;
+00E14D  2               beat_init:
+00E14D  2                       ; store counter
+00E14D  2  A5 02                lda bios_beat + 0
+00E14F  2  8D 24 FE             sta VIA_T1CL
+00E152  2  A5 03                lda bios_beat + 1
+00E154  2  8D 25 FE             sta VIA_T1CH
+00E157  2                       ; setup free-run and interrupt at time-out
+00E157  2  AD 2B FE             lda VIA_ACR
+00E15A  2  29 7F                and #$7F    ;   %01111111
+00E15C  2  09 40                ora #$40    ;   %01000000
+00E15E  2  8D 2B FE             sta VIA_ACR
+00E161  2  60                   rts
+00E162  2               
+00E162  2               ;--------------------------------------------------------
+00E162  2               ; start beat, zzzz
+00E162  2               beat_start:
+00E162  2  48                   pha
+00E163  2  AD 2E FE             lda VIA_IER
+00E166  2  29 7F                and #$7F   ;    %01111111
+00E168  2  09 60                ora #$60   ;    %01100000
+00E16A  2  8D 2E FE             sta VIA_IER
+00E16D  2  68                   pla
+00E16E  2  60                   rts
+00E16F  2               
+00E16F  2               ;--------------------------------------------------------
+00E16F  2               ; stop beat, zzzz
+00E16F  2               beat_stop:
+00E16F  2  48                   pha
+00E170  2                       ; lda #%10000000
+00E170  2  AD 2E FE             lda VIA_IER
+00E173  2  29 7F                and #$7F    ;   %01111111
+00E175  2  09 80                ora #$80    ;   %10000000
+00E177  2  8D 2E FE             sta VIA_IER
+00E17A  2  68                   pla
+00E17B  2  60                   rts
+00E17C  2               
+00E17C  2               ;--------------------------------------------------------
+00E17C  2               ; clear beat
+00E17C  2               beat_clear:
+00E17C  2  48                   pha
+00E17D  2  20 6F E1             jsr beat_stop
+00E180  2  A9 00                lda #$00
+00E182  2  85 02                sta bios_beat+0
+00E184  2  85 03                sta bios_beat+1
+00E186  2  85 04                sta bios_beat+2
+00E188  2  85 05                sta bios_beat+3
+00E18A  2  68                   pla
+00E18B  2  60                   rts
+00E18C  2               
+00E18C  2               ;--------------------------------------------------------
+00E18C  2               ;   tia init, extra VIA, future use
+00E18C  2               tia_init:
+00E18C  2                       ; jmp (tia_init_user)
+00E18C  2  60                   rts
+00E18D  2               
+00E18D  2               ;----------------------------------------------------------------------
+00E18D  2               
+00E18D  2               .include "i2c.s"
+00E18D  3               
+00E18D  3               ;----------------------------------------------------------------------
+00E18D  3               ; Copyright (c) 2023, Alvaro Gomes Sobral Barcellos
+00E18D  3               ; All rights reserved.
+00E18D  3               ;
+00E18D  3               ; Redistribution and use in source and binary forms, with or without
+00E18D  3               ; modification, are permitted provided that the following conditions are met:
+00E18D  3               ;
+00E18D  3               ; 1. Redistributions of source code must retain the above copyright notice, this
+00E18D  3               ;    list of conditions and the following disclaimer.
+00E18D  3               ; 2. Redistributions in binary form must reproduce the above copyright notice,
+00E18D  3               ;    this list of conditions and the following disclaimer in the documentation
+00E18D  3               ;    and/or other materials provided with the distribution.
+00E18D  3               ;
+00E18D  3               ; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+00E18D  3               ; ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+00E18D  3               ; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+00E18D  3               ; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+00E18D  3               ; ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+00E18D  3               ; (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+00E18D  3               ; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+00E18D  3               ; ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+00E18D  3               ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+00E18D  3               ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+00E18D  3               ;
+00E18D  3               ;----------------------------------------------------------------------
+00E18D  3               ;   alias
+00E18D  3               
+00E18D  3               	PRA  = VIA_PA
+00E18D  3               	DDRA = VIA_DDRA
+00E18D  3               
+00E18D  3               	SDAN = $FF - (SDA)
+00E18D  3               	SCLN = $FF - (SCL)
+00E18D  3               
+00E18D  3               ; zzzz how combine .word and 2 bytes ?
+00E18D  3               
+00E18D  3               	; must be at zero page
+00E18D  3               
+00E18D  3                       ;start address
+00E18D  3               	REM_PTR = bios_tmp1
+00E18D  3               
+00E18D  3                       ; start address
+00E18D  3               	RAM_PTR = bios_tmp2
+00E18D  3               
+00E18D  3                       ; length to copy
+00E18D  3               	LEN_PTR = bios_tmp3
+00E18D  3               
+00E18D  3                       ; which device
+00E18D  3               	DEVP = bios_tmp4 + 0
+00E18D  3               
+00E18D  3                       ; read or write
+00E18D  3               	SENS = bios_tmp4 + 1
+00E18D  3               
+00E18D  3                       ; page size
+00E18D  3               	PAGE = bios_tmp5 + 0
+00E18D  3               
+00E18D  3                       ; hold for shift
+00E18D  3               	BYTE = bios_tmp5 + 1
+00E18D  3               
+00E18D  3                       ; list devices found
+00E18D  3                       BUFFER = bios_buffer
+00E18D  3               
+00E18D  3               ;----------------------------------------------------------------------
+00E18D  3               ;   I2C sequences for eeproms:
+00E18D  3               ;
+00E18D  3               ;   for write:
+00E18D  3               ;
+00E18D  3               ;   header: Start, Control|W, Ack, Address MSB, Ack, Address LSB, Ack,
+00E18D  3               ;   block:  Byte, (Ack), Byte, (Ack), ..., Byte, (Ack), Stop
+00E18D  3               ;
+00E18D  3               ;   for read:
+00E18D  3               ;
+00E18D  3               ;   header: Start, Control|W, Ack, Address MSB, Ack, Address LSB, Ack,
+00E18D  3               ;   ready:  Start, Control|R, Ack,
+00E18D  3               ;   block:  (Byte) Ack, (Byte) Ack, ..., (Byte) Nak, Stop
+00E18D  3               ;
+00E18D  3               ;   Control is byte with
+00E18D  3               ;   a frame of 7 bits, 000 to 111 device
+00E18D  3               ;   a low bit read/write 0 to write, 1 to read
+00E18D  3               ;
+00E18D  3               ;   from master view, (any) is received
+00E18D  3               ;
+00E18D  3               ;   do not use more than a device page in Block
+00E18D  3               ;
+00E18D  3               ;----------------------------------------------------------------------
+00E18D  3               
+00E18D  3               
+00E18D  3               _ram2cpy:
+00E18D  3  A9 03        	lda #$03
+00E18F  3  D0 08        	bne _moves
+00E191  3               
+00E191  3               _rem2ram:
+00E191  3  A9 02        	lda #$02
+00E193  3  D0 04        	bne _moves
+00E195  3               
+00E195  3               _ram2rem:
+00E195  3  A9 01        	lda #$01
+00E197  3  F0 00        	beq _moves
+00E199  3               
+00E199  3               ;----------------------------------------------------------------------
+00E199  3               ; does copy from into, not rem to rem.
+00E199  3               ;
+00E199  3               _moves:
+00E199  3               @p0:
+00E199  3  8D 17 03     	sta SENS
+00E19C  3               	; set page size
+00E19C  3  A9 80        	lda #$80    ; page size of at24LC512 eeprom used in 6502.toy
+00E19E  3  8D 18 03     	sta PAGE
+00E1A1  3  A5 11        	lda LEN_PTR + 1
+00E1A3  3  D0 0A        	bne @p1
+00E1A5  3  A5 10        	lda LEN_PTR + 0
+00E1A7  3  CD 18 03     	cmp PAGE
+00E1AA  3  B0 03        	bcs @p1
+00E1AC  3  8D 18 03     	sta PAGE
+00E1AF  3               @p1:
+00E1AF  3               	; copy a page
+00E1AF  3  AD 17 03     	lda SENS
+00E1B2  3  C9 03        	cmp #$03    ; ram2ram
+00E1B4  3  F0 0A        	beq @inram
+00E1B6  3  C9 02        	cmp #$02    ; rem2ram
+00E1B8  3  F0 0C        	beq @toram
+00E1BA  3  C9 01        	cmp #$01    ; ram2rem
+00E1BC  3  F0 0E        	beq @torem
+00E1BE  3               @panic:
+00E1BE  3  38           	sec
+00E1BF  3  60           	rts
+00E1C0  3               @inram:
+00E1C0  3  20 02 E2     	jsr _ram2ram
+00E1C3  3  18           	clc
+00E1C4  3  90 0C        	bcc @p2
+00E1C6  3               @toram:
+00E1C6  3  20 0F E2     	jsr _i2c_toram
+00E1C9  3  18           	clc
+00E1CA  3  90 06        	bcc @p2
+00E1CC  3               @torem:
+00E1CC  3  20 3F E2     	jsr _i2c_torem
+00E1CF  3  18           	clc
+00E1D0  3  90 00        	bcc @p2
+00E1D2  3               @p2:
+00E1D2  3               	; prem += page
+00E1D2  3  18           	clc
+00E1D3  3  A5 0C        	lda REM_PTR + 0
+00E1D5  3  6D 18 03     	adc PAGE
+00E1D8  3  85 0C        	sta REM_PTR + 0
+00E1DA  3  90 02        	bcc @p3
+00E1DC  3  E6 0D        	inc REM_PTR + 1
+00E1DE  3               @p3:
+00E1DE  3               	; pram += page
+00E1DE  3  18           	clc
+00E1DF  3  A5 0E        	lda RAM_PTR + 0
+00E1E1  3  6D 18 03     	adc PAGE
+00E1E4  3  85 0E        	sta RAM_PTR + 0
+00E1E6  3  90 02        	bcc @p4
+00E1E8  3  E6 0F        	inc RAM_PTR + 1
+00E1EA  3               @p4:
+00E1EA  3               	; leng -= page
+00E1EA  3  18           	clc
+00E1EB  3  A5 10        	lda LEN_PTR + 0
+00E1ED  3  ED 18 03     	sbc PAGE
+00E1F0  3  85 10        	sta LEN_PTR + 0
+00E1F2  3  90 02        	bcc @p5
+00E1F4  3  C6 11        	dec LEN_PTR + 1
+00E1F6  3               @p5:
+00E1F6  3               	; if len == 0 ends
+00E1F6  3  A9 00        	lda #$00
+00E1F8  3  C5 11        	cmp LEN_PTR + 1
+00E1FA  3  D0 9D        	bne @p0
+00E1FC  3  C5 10        	cmp LEN_PTR + 0
+00E1FE  3  D0 99        	bne @p0
+00E200  3               	; ends
+00E200  3  18           	clc
+00E201  3  60           	rts
+00E202  3               
+00E202  3               ;----------------------------------------------------------------------
+00E202  3               _ram2ram:
+00E202  3               	; read a page
+00E202  3  A0 00        	ldy #$0
+00E204  3               @loop:
+00E204  3  B1 0C        	lda (REM_PTR), y
+00E206  3  91 0E        	sta (RAM_PTR), y
+00E208  3  C8           	iny
+00E209  3  CC 18 03     	cpy PAGE
+00E20C  3  90 F6        	bcc @loop
+00E20E  3  60           	rts
+00E20F  3               
+00E20F  3               ;----------------------------------------------------------------------
+00E20F  3               _i2c_toram:
+00E20F  3               
+00E20F  3  20 1D E3     	jsr _i2c_rst
+00E212  3               
+00E212  3  20 EF E2     	jsr _i2c_start
+00E215  3  A9 00        	lda #$00     ; set write
+00E217  3  20 83 E2     	jsr _i2c_setDevice
+00E21A  3  20 8C E2     	jsr _i2c_setAddress
+00E21D  3               
+00E21D  3  20 EF E2     	jsr _i2c_start
+00E220  3  A9 01        	lda #$01     ; set read
+00E222  3  20 83 E2     	jsr _i2c_setDevice
+00E225  3               
+00E225  3               	; read a page
+00E225  3  A0 00        	ldy #$0
+00E227  3               @loop:
+00E227  3  20 B0 E2     	jsr _i2c_getc
+00E22A  3  91 0E        	sta (RAM_PTR), y
+00E22C  3  C8           	iny
+00E22D  3  CC 18 03     	cpy PAGE
+00E230  3  B0 06        	bcs @last
+00E232  3  20 09 E3     	jsr _i2c_ack
+00E235  3  18           	clc
+00E236  3  90 EF        	bcc @loop
+00E238  3               @last:
+00E238  3  20 13 E3     	jsr _i2c_nak
+00E23B  3  20 FC E2     	jsr _i2c_stop
+00E23E  3  60           	rts
+00E23F  3               
+00E23F  3               ;---------------------------------------------------------------------
+00E23F  3               ; need adjust steps
+00E23F  3               _i2c_torem:
+00E23F  3               
+00E23F  3  20 1D E3     	jsr _i2c_rst
+00E242  3               
+00E242  3  20 EF E2     	jsr _i2c_start
+00E245  3  A9 00        	lda #$00     ; set write
+00E247  3  20 83 E2     	jsr _i2c_setDevice
+00E24A  3  20 8C E2     	jsr _i2c_setAddress
+00E24D  3               
+00E24D  3               	; write a page
+00E24D  3  A0 00        	ldy #$0
+00E24F  3               @loop:
+00E24F  3  B1 0E        	lda (RAM_PTR), y
+00E251  3  20 97 E2     	jsr _i2c_putc
+00E254  3  D0 F9        	bne @loop    ; wait until ready but could hang
+00E256  3  C8           	iny
+00E257  3  CC 18 03     	cpy PAGE
+00E25A  3  90 F3        	bcc @loop
+00E25C  3               @last:
+00E25C  3  20 FC E2     	jsr _i2c_stop
+00E25F  3  60           	rts
+00E260  3               
+00E260  3               ;----------------------------------------------------------------------
+00E260  3               ; scans for 1 to 128,  ((4 bits device | 3 bits address) << 1) | 1 bit write
+00E260  3               ; return a list of address alive in buffer, zero at end
+00E260  3               _rem2map:
+00E260  3               _i2c_scan:
+00E260  3  A2 01        	ldx #$01
+00E262  3  A0 00        	ldy #$00
+00E264  3               @loop:
+00E264  3  20 EF E2     	jsr _i2c_start
+00E267  3  8A           	txa
+00E268  3  0A           	asl
+00E269  3  20 97 E2     	jsr _i2c_putc
+00E26C  3  C9 00        	cmp #$0
+00E26E  3  B0 05        	bcs @next
+00E270  3               @ack:
+00E270  3               	; alive response
+00E270  3  8A           	txa
+00E271  3  99 1E 03     	sta BUFFER, y
+00E274  3  C8           	iny
+00E275  3               @next:
+00E275  3  20 FC E2     	jsr _i2c_stop
+00E278  3  E8           	inx
+00E279  3  E0 80        	cpx #$80
+00E27B  3  90 E7        	bcc @loop
+00E27D  3               @ends:
+00E27D  3  A9 00        	lda #$00
+00E27F  3  99 1E 03     	sta BUFFER, y
+00E282  3  60           	rts
+00E283  3               
+00E283  3               ;----------------------------------------------------------------------
+00E283  3               ;   Microchip mask is 1010|A2|A1|A0|R/W, A2,A1,A0 glue zero
+00E283  3               ;   a = 0 write, a = 1 read
+00E283  3               _i2c_setDevice:
+00E283  3  6A           	ror
+00E284  3  AD 16 03     	lda DEVP
+00E287  3  2A           	rol
+00E288  3  20 97 E2     	jsr _i2c_putc
+00E28B  3  60           	rts
+00E28C  3               
+00E28C  3               ;----------------------------------------------------------------------
+00E28C  3               _i2c_setAddress:
+00E28C  3  A5 0D        	lda REM_PTR + 1
+00E28E  3  20 97 E2     	jsr _i2c_putc
+00E291  3  A5 0C        	lda REM_PTR + 0
+00E293  3  20 97 E2     	jsr _i2c_putc
+00E296  3  60           	rts
+00E297  3               
+00E297  3               ;----------------------------------------------------------------------
+00E297  3               ; write any byte
+00E297  3               _i2c_putc:
+00E297  3  8D 19 03     	sta BYTE
+00E29A  3  A2 08        	ldx #$08
+00E29C  3               @loop:
+00E29C  3  0E 19 03     	asl BYTE
+00E29F  3  B0 05        	bcs @one
+00E2A1  3               @zero:
+00E2A1  3  20 09 E3     	jsr _i2c_zero
+00E2A4  3  90 03        	bcc @sent
+00E2A6  3               @one:
+00E2A6  3  20 13 E3     	jsr _i2c_one
+00E2A9  3               @sent:
+00E2A9  3  CA           	dex
+00E2AA  3  D0 F0        	bne @loop
+00E2AC  3               @qack:
+00E2AC  3  20 BD E2     	jsr _recv_bit
+00E2AF  3               	; acc 0 = Ack, 1 = Nak
+00E2AF  3               @end:
+00E2AF  3  60           	rts
+00E2B0  3               
+00E2B0  3               ;----------------------------------------------------------------------
+00E2B0  3               ; read any byte
+00E2B0  3               _i2c_getc:
+00E2B0  3  A2 08        	ldx #$08
+00E2B2  3               @loop:
+00E2B2  3  20 BD E2     	jsr _recv_bit
+00E2B5  3  6A           	ror
+00E2B6  3  2E 18 03     	rol PAGE
+00E2B9  3  CA           	dex
+00E2BA  3  D0 F6        	bne @loop
+00E2BC  3               @end:
+00E2BC  3  60           	rts
+00E2BD  3               
+00E2BD  3               ;----------------------------------------------------------------------
+00E2BD  3               ; receive a bit
+00E2BD  3               _recv_bit:
+00E2BD  3  20 3F E3     	jsr sda_high
+00E2C0  3  20 51 E3     	jsr scl_high
+00E2C3  3               	; nop ???
+00E2C3  3  AD 21 FE     	lda PRA
+00E2C6  3  29 02        	and #SDA
+00E2C8  3  D0 04        	bne @is_one
+00E2CA  3               @is_zero:
+00E2CA  3  A9 00        	lda #$00
+00E2CC  3  90 02        	bcc @ends
+00E2CE  3               @is_one:
+00E2CE  3  A9 01        	lda #$01
+00E2D0  3               @ends:
+00E2D0  3  20 48 E3     	jsr scl_down
+00E2D3  3               ;    jsr sda_down
+00E2D3  3  60           	rts
+00E2D4  3               
+00E2D4  3               ;----------------------------------------------------------------------
+00E2D4  3               ; clear all pending
+00E2D4  3               _i2c_clear:
+00E2D4  3  20 FC E2     	jsr _i2c_stop
+00E2D7  3  20 EF E2     	jsr _i2c_start
+00E2DA  3  20 36 E3     	jsr sda_down
+00E2DD  3  A2 09        	ldx #$09
+00E2DF  3               @loop:
+00E2DF  3  20 51 E3     	jsr scl_high
+00E2E2  3  20 48 E3     	jsr scl_down
+00E2E5  3  CA           	dex
+00E2E6  3  D0 F7        	bne @loop
+00E2E8  3  20 EF E2     	jsr _i2c_start
+00E2EB  3  20 FC E2     	jsr _i2c_stop
+00E2EE  3  60           	rts
+00E2EF  3               
+00E2EF  3               ;----------------------------------------------------------------------
+00E2EF  3               ;   marks
+00E2EF  3               ;   beware: order matters
+00E2EF  3               
+00E2EF  3               ;----------------------------------------------------------------------
+00E2EF  3               ; mark a Start, wait and take, by order
+00E2EF  3               _i2c_start:
+00E2EF  3  20 3F E3     	jsr sda_high
+00E2F2  3  20 51 E3     	jsr scl_high
+00E2F5  3  20 36 E3     	jsr sda_down
+00E2F8  3  20 48 E3     	jsr scl_down
+00E2FB  3  60           	rts
+00E2FC  3               
+00E2FC  3               ;----------------------------------------------------------------------
+00E2FC  3               ; mark a Stop,    take and give, by order
+00E2FC  3               _i2c_stop:
+00E2FC  3  20 36 E3     	jsr sda_down
+00E2FF  3  20 48 E3     	jsr scl_down
+00E302  3  20 51 E3     	jsr scl_high
+00E305  3  20 3F E3     	jsr sda_high
+00E308  3  60           	rts
+00E309  3               
+00E309  3               ;----------------------------------------------------------------------
+00E309  3               ; send a Ack
+00E309  3               _i2c_zero:
+00E309  3               _i2c_ack:
+00E309  3  20 36 E3     	jsr sda_down
+00E30C  3  20 51 E3     	jsr scl_high
+00E30F  3  20 48 E3     	jsr scl_down
+00E312  3  60           	rts
+00E313  3               
+00E313  3               ;----------------------------------------------------------------------
+00E313  3               ; send a Nak
+00E313  3               _i2c_one:
+00E313  3               _i2c_nak:
+00E313  3  20 3F E3     	jsr sda_high
+00E316  3  20 51 E3     	jsr scl_high
+00E319  3  20 48 E3     	jsr scl_down
+00E31C  3  60           	rts
+00E31D  3               
+00E31D  3               ;----------------------------------------------------------------------
+00E31D  3               ; send a Reset
+00E31D  3               _i2c_rst:
+00E31D  3  20 36 E3     	jsr sda_down
+00E320  3  20 48 E3     	jsr scl_down
+00E323  3  20 51 E3     	jsr scl_high
+00E326  3  20 3F E3     	jsr sda_high
+00E329  3  20 48 E3     	jsr scl_down
+00E32C  3  20 51 E3     	jsr scl_high
+00E32F  3  20 36 E3     	jsr sda_down
+00E332  3  20 48 E3     	jsr scl_down
+00E335  3  60           	rts
+00E336  3               
+00E336  3               ;----------------------------------------------------------------------
+00E336  3               ;       bit-bang, changes Acc, N, Z
+00E336  3               ;       could be macros
+00E336  3               ;----------------------------------------------------------------------
+00E336  3               sda_down:
+00E336  3  AD 23 FE     	lda DDRA
+00E339  3  09 02        	ora #SDA
+00E33B  3  8D 23 FE     	sta DDRA
+00E33E  3  60           	rts
+00E33F  3               
+00E33F  3               ;----------------------------------------------------------------------
+00E33F  3               sda_high:
+00E33F  3  A9 FD        	lda #SDAN
+00E341  3  2D 23 FE     	and DDRA
+00E344  3  8D 23 FE     	sta DDRA
+00E347  3  60           	rts
+00E348  3               
+00E348  3               ;----------------------------------------------------------------------
+00E348  3               scl_down:
+00E348  3  AD 23 FE     	lda DDRA
+00E34B  3  09 01        	ora #SCL
+00E34D  3  8D 23 FE     	sta DDRA
+00E350  3  60           	rts
+00E351  3               
+00E351  3               ;----------------------------------------------------------------------
+00E351  3               scl_high:
+00E351  3  A9 FE        	lda #SCLN
+00E353  3  2D 23 FE     	and DDRA
+00E356  3  8D 23 FE     	sta DDRA
+00E359  3  60           	rts
+00E35A  3               
+00E35A  3               ;----------------------------------------------------------------------
+00E35A  3               
+00E35A  3               
+00E35A  2               
+00E35A  2               ; i2c
+00E35A  2               
+00E35A  2               rem2ram_i2c:
+00E35A  2               
+00E35A  2               ram2rem_i2c:
+00E35A  2               
+00E35A  2               ; spi
+00E35A  2               
+00E35A  2               rem2ram_spi:
+00E35A  2               
+00E35A  2               ram2rem_spi:
+00E35A  2               
+00E35A  2               ; copy
+00E35A  2               
+00E35A  2               ram2ram:
+00E35A  2  60                   rts
+00E35B  2               
+00E35B  2               ;----------------------------------------------------------------------
+00E35B  2               ;
+00E35B  2               ;   ok  ( -- w)
+00E35B  2               ;
+00E35B  2               ;     ©2000-2021 by Gerhard Schmidt,
+00E35B  2               ;      http://www.avr-asm-tutorial.net/avr en/apps/random tn13/random calc tn13.html
+00E35B  2               ;
+00E35B  2               ;    seed ~ 0x02A8
+00E35B  2               ;
+00E35B  2               ;     also good seeds
+00E35B  2               ;
+00E35B  2               ;.word  $02A8
+00E35B  2               ;.word  $B167, $4A3C, $9879, $B61E, $7B26
+00E35B  2               ;.word  $A858, $1F88, $50D5, $419D, $5537
+00E35B  2               ;.word  $0224, $0527, $5EB6, $1E6D, $BCDC
+00E35B  2               ;.word  $92FF, $C206, $0ECD, $9361, $2823
+00E35B  2               ;.word  $BE0B, $B303, $6462, $0E4C, $3D24
+00E35B  2               ;
+00E35B  2               randomize:
+00E35B  2               
+00E35B  2  48                   pha
+00E35C  2               
+00E35C  2  AD 03 03             lda bios_seed + 1
+00E35F  2  48                   pha
+00E360  2  4D 02 03     	    eor bios_seed + 0
+00E363  2  6D 02 03     	    adc bios_seed + 0
+00E366  2  8D 03 03     	    sta bios_seed + 1
+00E369  2  68                   pla
+00E36A  2  8D 02 03     	sta bios_seed + 0
+00E36D  2               
+00E36D  2  AD 04 03     	lda bios_seed + 2
+00E370  2  48                   pha
+00E371  2  4D 03 03     	    eor bios_seed + 1
+00E374  2  6D 03 03     	    adc bios_seed + 1
+00E377  2  8D 04 03     	    sta bios_seed + 2
+00E37A  2  68                   pla
+00E37B  2  8D 03 03     	sta bios_seed + 1
+00E37E  2               
+00E37E  2  AD 05 03     	lda bios_seed + 3
+00E381  2  48                   pha
+00E382  2  4D 04 03     	    eor bios_seed + 2
+00E385  2  6D 04 03     	    adc bios_seed + 2
+00E388  2  8D 05 03     	    sta bios_seed + 3
+00E38B  2  68                   pla
+00E38C  2  8D 04 03     	sta bios_seed + 2
+00E38F  2               
+00E38F  2  AD 02 03     	lda bios_seed + 0
+00E392  2  48                   pha
+00E393  2  4D 05 03     	    eor bios_seed + 3
+00E396  2  6D 05 03     	    adc bios_seed + 3
+00E399  2  8D 02 03     	    sta bios_seed + 0
+00E39C  2  68                   pla
+00E39D  2  8D 05 03         	sta bios_seed + 3
+00E3A0  2               
+00E3A0  2  68                   pla
+00E3A1  2               
+00E3A1  2  60           	rts
+00E3A2  2               
+00E3A2  2               ;----------------------------------------------------------------------
+00E3A2  2               ;00-32-15-19-04-21-02-25-17-34-06-27-13-36-11-30-08-23-10
+00E3A2  2               ;  -05-24-16-33-01-20-14-31-09-22-18-29-07-28-12-35-03-26
+00E3A2  2               roulette:
+00E3A2  2  48                   pha
+00E3A3  2  98                   tya
+00E3A4  2  48                   pha
+00E3A5  2               @loop:
+00E3A5  2  20 5B E3             jsr randomize
+00E3A8  2  AD 02 03             lda bios_seed + 0
+00E3AB  2  C9 94                cmp #$94     ; valid 0 to 147, 148/256 repeat ~42%
+00E3AD  2  10 F6                bpl @loop
+00E3AF  2               
+00E3AF  2  6A                   ror
+00E3B0  2  6A                   ror
+00E3B1  2  A8                   tay
+00E3B2  2  B9 BC E3             lda roulette_wheel, y
+00E3B5  2  8D 02 03             sta bios_seed + 0
+00E3B8  2               @ends:
+00E3B8  2  68                   pla
+00E3B9  2  A8                   tay
+00E3BA  2  68                   pla
+00E3BB  2  60                   rts
+00E3BC  2               
+00E3BC  2               roulette_wheel:
+00E3BC  2               
+00E3BC  2  00           .byte 00
+00E3BD  2  20 0F 13 04  .byte 32, 15, 19, 04, 21, 02, 25, 17, 34, 06, 27, 13
+00E3C1  2  15 02 19 11  
+00E3C5  2  22 06 1B 0D  
+00E3C9  2  24 0B 1E 08  .byte 36, 11, 30, 08, 23, 10, 05, 24, 16, 33, 01, 20
+00E3CD  2  17 0A 05 18  
+00E3D1  2  10 21 01 14  
+00E3D5  2  0E 1F 09 16  .byte 14, 31, 09, 22, 18, 29, 07, 28, 12, 35, 03, 26
+00E3D9  2  12 1D 07 1C  
+00E3DD  2  0C 23 03 1A  
+00E3E1  2               
+00E3E1  2               ;--------------------------------------------------------
+00E3E1  2               ; tones, for T2 one-shoot, with SR as output
+00E3E1  2               
+00E3E1  2               ; StarTreck(2), C5, D5, E5, F5, G5, A5, Quindar(2)
+00E3E1  2               ; frequency 2000, 2500, 523, 587, 659, 698, 784, 879
+00E3E1  2               
+00E3E1  2               tone_lsb:
+00E3E1  2  73 B8 2B 9D          .byte 115, 184, 43, 157, 233, 220, 235, 131, 75, 124
+00E3E5  2  E9 DC EB 83  
+00E3E9  2  4B 7C        
+00E3EB  2               
+00E3EB  2               tone_msb:
+00E3EB  2  04 02 29 0A          .byte 4, 2, 41, 10, 2, 6, 5, 8, 5, 3
+00E3EF  2  02 06 05 08  
+00E3F3  2  05 03        
+00E3F5  2               
+00E3F5  2               shift_rs:
+00E3F5  2  55 33 0F 8E          .byte %01010101, %00110011, %00001111, %10001110
+00E3F9  2               
+00E3F9  2               ;--------------------------------------------------------
+00E3F9  2               ;   reserved for devices
+00E3F9  2               * = $FE00
+00FE00  2  FF FF FF FF          .res $FF, $FF
+00FE04  2  FF FF FF FF  
+00FE08  2  FF FF FF FF  
+00FEFF  2               
+00FEFF  2               ;--------------------------------------------------------
+00FEFF  2               ;   boot code
+00FEFF  2               * = $FF00
+00FF00  2               
+00FF00  2               .export _main
+00FF00  2               _main:
+00FF00  2               
+00FF00  2               bios_rst:
+00FF00  2               jump_rst:
+00FF00  2               init:
+00FF00  2               
+00FF00  2                       ; disable interrupts
+00FF00  2  78                   sei
+00FF01  2               
+00FF01  2                       ;0x0 wise
+00FF01  2  D8                   cld
+00FF02  2               
+00FF02  2                       ; prepare bios stack
+00FF02  2  A2 3F                ldx #($40 -1)
+00FF04  2  9A                   txs
+00FF05  2               
+00FF05  2                       ; alive
+00FF05  2  20 0E E0             jsr beep
+00FF08  2               
+00FF08  2                       ; power on self test
+00FF08  2  20 0F E0             jsr post
+00FF0B  2               
+00FF0B  2                       ; copy interrupt vectors and bios functions
+00FF0B  2               
+00FF0B  2  A0 24                ldy #(bios_list_end - bios_list_rom)
+00FF0D  2               @loop:
+00FF0D  2  B9 6C FF             lda bios_list_rom, y
+00FF10  2  99 00 02             sta bios_list, y
+00FF13  2  88                   dey
+00FF14  2  D0 F7                bne @loop
+00FF16  2               
+00FF16  2                       ; setup acia, with external clock 11.0592 MHz
+00FF16  2               
+00FF16  2                       ; %0001 1111 = 19200 baud, external receiver, 8 bit, 1 stop bit
+00FF16  2  A9 1F                lda #$1F
+00FF18  2  8D 12 03             sta bios_acia + 0
+00FF1B  2               
+00FF1B  2                       ; %0000 1011 = no parity, normal mode, RTS low, INT disable, DTR low
+00FF1B  2  A9 0B                lda #$0B
+00FF1D  2  8D 13 03             sta bios_acia + 1
+00FF20  2               
+00FF20  2                       ; setup acia one
+00FF20  2  20 E3 E0             jsr acia_init
+00FF23  2               
+00FF23  2                       ; setup via one
+00FF23  2  20 21 E1             jsr via_init
+00FF26  2               
+00FF26  2                       ; setup via two
+00FF26  2  20 8C E1             jsr tia_init
+00FF29  2               
+00FF29  2                       ; setup tone
+00FF29  2  20 2B E1             jsr tone_init
+00FF2C  2               
+00FF2C  2                       ; alive
+00FF2C  2  20 0E E0             jsr beep
+00FF2F  2               
+00FF2F  2                       ; copy REM to RAM
+00FF2F  2                       ; jsr copy_eep
+00FF2F  2               
+00FF2F  2                       ; seed
+00FF2F  2               
+00FF2F  2  A9 A8                lda #$A8
+00FF31  2  8D 02 03             sta bios_seed + 0
+00FF34  2  A9 02                lda #$02
+00FF36  2  8D 03 03             sta bios_seed + 1
+00FF39  2  A9 67                lda #$67
+00FF3B  2  8D 04 03             sta bios_seed + 2
+00FF3E  2  A9 B1                lda #$B1
+00FF40  2  8D 05 03             sta bios_seed + 3
+00FF43  2               
+00FF43  2                       ; phi2 is 0.9216 (1.8432/2) MHz, 10ms is 9216 or $2400
+00FF43  2               
+00FF43  2  A9 00                lda #$00
+00FF45  2  85 02                sta bios_beat + 0
+00FF47  2  A9 24                lda #$24
+00FF49  2  85 03                sta bios_beat + 1
+00FF4B  2               
+00FF4B  2                       ; setup beat
+00FF4B  2               
+00FF4B  2  A9 00                lda #00
+00FF4D  2  85 02                sta bios_beat + 0
+00FF4F  2  85 03                sta bios_beat + 1
+00FF51  2  85 04                sta bios_beat + 2
+00FF53  2  85 05                sta bios_beat + 3
+00FF55  2               
+00FF55  2  20 4D E1             jsr beat_init
+00FF58  2               
+00FF58  2                       ; enable interrupts
+00FF58  2               
+00FF58  2  58                   cli
+00FF59  2               
+00FF59  2                       ; insanity for safety
+00FF59  2               
+00FF59  2  60                   rts
+00FF5A  2               
+00FF5A  2               @ever:
+00FF5A  2  20 00 10             jsr $1000
+00FF5D  2               
+00FF5D  2  4C 5A FF             jmp @ever
+00FF60  2               
+00FF60  2               ;--------------------------------------------------------
+00FF60  2               ; alias at page
+00FF60  2               
+00FF60  2               jump_nmi:
+00FF60  2  EA                   nop
+00FF61  2  6C 02 02             jmp ($0202)
+00FF64  2               
+00FF64  2               jump_irq:
+00FF64  2  EA                   nop
+00FF65  2  6C 04 02             jmp ($0204)
+00FF68  2               
+00FF68  2               ;----------------------------------------------------------------------
+00FF68  2               
+00FF68  2               ;----------------------------------------------------------------------
+00FF68  2               ; ends list
+00FF68  2               ;
+00FF68  2               
+00FF68  2  DE AD C0 DE  .byte $DE,$AD,$C0,$DE
+00FF6C  2               
+00FF6C  2               ;--------------------------------------------------------
+00FF6C  2               ; for easy init list bios functions entry point
+00FF6C  2               ; for easy copy to JUMPS page
+00FF6C  2               bios_list_rom:
+00FF6C  2               
+00FF6C  2  00 00        .word $0000
+00FF6E  2  87 E0        .word bios_nmi
+00FF70  2  A3 E0        .word bios_irq
+00FF72  2  00 FF        .word bios_rst
+00FF74  2               
+00FF74  2  E3 E0        .word acia_init
+00FF76  2  FB E0        .word acia_txq
+00FF78  2  F5 E0        .word acia_rxq
+00FF7A  2  0B E1        .word acia_tx
+00FF7C  2  01 E1        .word acia_rx
+00FF7E  2               
+00FF7E  2  21 E1        .word via_init
+00FF80  2  4D E1        .word beat_init
+00FF82  2  62 E1        .word beat_start
+00FF84  2  6F E1        .word beat_stop
+00FF86  2  7C E1        .word beat_clear
+00FF88  2               
+00FF88  2  8C E1        .word tia_init
+00FF8A  2  2B E1        .word tone_init
+00FF8C  2               
+00FF8C  2               
+00FF8C  2  5B E3        .word randomize
+00FF8E  2  A2 E3        .word roulette
+00FF90  2               bios_list_end:
+00FF90  2               
+00FF90  2               ;----------------------------------------------------------------------
+00FF90  2               end_of_code:
+00FF90  2               
+00FF90  2               .if 0
+00FF90  2               
+00FF90  2               ;-----------------------------------------------------------------------
+00FF90  2               ; extras for 6502
+00FF90  2               ; vide eorBookV1.0.1
+00FF90  2               
+00FF90  2               ; set overflow bit
+00FF90  2               setovr :
+00FF90  2                       bit @ends
+00FF90  2               @ends:
+00FF90  2                       rts
+00FF90  2               
+00FF90  2               ; Z flag is zero in NMOS6502
+00FF90  2               nmos :
+00FF90  2                       sed
+00FF90  2                       clc
+00FF90  2                       lda #$99
+00FF90  2                       adc #$01
+00FF90  2                       cld
+00FF90  2                       rts
+00FF90  2               
+00FF90  2               ;----------------------------------------------------------------------
+00FF90  2               ; just extras
+00FF90  2               
+00FF90  2                LDA  VIA DDRB
+00FF90  2               
+00FF90  2                ORA #$80
+00FF90  2               
+00FF90  2                STA  VIA DDRB   ; Set the high bit in DDRB, to make PB7 an output.
+00FF90  2               
+00FF90  2                LDA  VIA ACR    ; Set the two high bits in the ACR to get the
+00FF90  2               
+00FF90  2                ORA #$C0        ; square-wave output on PB7.  (Don't enable the
+00FF90  2               
+00FF90  2                STA  VIA ACR    ; T1 interrupt in the IER though.)
+00FF90  2               
+00FF90  2                LDA #255        ; Set the T1 timeout period. LOWER THIS TO SOMETHING LIKE 77 FOR 1MHZ CPU CLOCK
+00FF90  2               
+00FF90  2                STA $6004       ; VIA T1CL   ;USE 255 if the Φ2 rate is 5MHz.
+00FF90  2               
+00FF90  2                LDA #100        ; Beep Tone, 0 highest, 255 lowest
+00FF90  2               
+00FF90  2                STA $6005       ; VIA T1CH    ;We are now beeping
+00FF90  2               
+00FF90  2                It will not stop until the system is reset or you turn it off.
+00FF90  2               
+00FF90  2                BEEP Off:
+00FF90  2               
+00FF90  2                STZ $600b       ;VIA ACR ;No more beep!
+00FF90  2               
+00FF90  2                .endif
+00FF90  2               
+00FF90  2               
+00FF90  2               
+00FF90  1               
+00FF90  1               exit_of_boot:
+00FF90  1               
+00FF90  1               ;---------------------------------------------------------------------
+00FF90  1               ;  init of lib6502 emulator
+00FF90  1               ;---------------------------------------------------------------------
+00FF90  1               getc:
+00FF90  1  AD 00 E0             lda $E000
+00FF93  1               
+00FF93  1               eofs:
+00FF93  1  C9 FF                cmp #$FF
+00FF95  1  F0 04                beq byes
+00FF97  1               
+00FF97  1               putc:
+00FF97  1  8D 00 E0             sta $E000
+00FF9A  1  60                   rts
+00FF9B  1               
+00FF9B  1               ; exit from emulator
+00FF9B  1               byes:
+00FF9B  1  4C 00 00             jmp $0000
+00FF9E  1               
+00FF9E  1               ;---------------------------------------------------------------------
+00FF9E  1               ;  end of lib6502 emulator
+00FF9E  1               ;---------------------------------------------------------------------
+00FF9E  1               
+00FF9E  1               ;--------------------------------------------------------
+00FF9E  1               ; at $FFFA
+00FF9E  1               ;.segment "VECTORS"
+00FF9E  1               
+00FF9E  1               * = $FFFA
+00FFFA  1               
+00FFFA  1               ; hardware jumpers
+00FFFA  1               rom_nmi:
+00FFFA  1  60 FF        .addr jump_nmi   ; fa ROM NMI vector
+00FFFC  1               
+00FFFC  1               rom_rst:
+00FFFC  1  00 FF        .addr jump_rst   ; fc ROM Reset vector
+00FFFE  1               
+00FFFE  1               rom_irq:
+00FFFE  1  64 FF        .addr jump_irq   ; fe ROM IRQ/BRK vector
+010000  1               
+010000  1               ;----------------------------------------------------------------------
+010000  1               .end
