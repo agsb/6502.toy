@@ -6,7 +6,9 @@
 
 _I seek for learn, not for speed._
 
-I had an Apple II. The Furby was a two 6502 'like' toy. I want make a SBC minimal as my toy.
+I had an Apple II. The Furby was a two 6502 'like' toy. 
+
+I want make a ~SBC minimal~ as my toy.
 
 We know the Terminator’s main CPU is a 6502.
 
@@ -21,14 +23,15 @@ PS.
 - [Ben Eater](https://www.youtube.com/watch?v=LnzuMJLZRdU) made a revival of 6502. 
 - using ROM, for read-only memory, never changes
 - using RAM, for random access memory, ever changes
-- using REM, for regular eeprom memory, could change (I2C, SPI, etc)
+- using REM, for regular eeprom memory, can changes (I2C, SPI, etc)
         
 ## Road Map
 
 - make all circuit plans (W.I.P.)
-- make a eeprom programmer like [Ben Eater](https://github.com/beneater/eeprom-programmer), but using arduino nano and change pins used.
+- make a eeprom programmer like [Ben Eater](https://github.com/beneater/eeprom-programmer), but using arduino nano and some change in pins used.
 - make a nop circuit to test cpus, using a arduino mini and [clockvar6502](https://github.com/maarten-pennings/6502/blob/master/1clock/clockvar6502)
-        
+- wire wrap the boards
+          
 ## Hardware
 
 ### B.O.M
@@ -93,9 +96,9 @@ Using I2C and SPI protocols and devices.
 
 The board have two extra 8-pins DIPs slots for I2C epproms.
 
-Use MicroChip AARDVARK connector, interface I2C and SPI
+Use MicroChip [AARDVARK](https://onlinedocs.microchip.com/oxy/GUID-A21CD3C1-401E-4D3B-A45B-78E60737CD44-en-US-8/GUID-92136A89-CE06-46A2-8F03-80317EDD4F89.html) connector, interface I2C and SPI
 
-Use [UEXT](https://en.wikipedia.org/wiki/UEXT) interface for USART, I2C, SPI, 3V3
+Use [UEXT](https://en.wikipedia.org/wiki/UEXT) interface for USART, I2C, SPI, 3V3, 5V0, GND
 
 Use [65SIB](http://forum.6502.org/viewtopic.php?t=1064&start=105) for alternative interface.
 
@@ -107,7 +110,7 @@ At boot, the bios will copy bytes from a I2C eeprom into RAM and jump to it.
 
 Use a BIOS and Forth, 
 
-Use USART for VT100 terminal, FDDI/USB for Tera-Term or PuTTy at computer.
+Use USART for VT100 terminal, FDDI/USB for Tera-Term or PuTTy at a computer.
 
 ### Bios
 
@@ -162,9 +165,9 @@ The Forth uses RAM from $1000 to $DFFF, $00D0-$00DF 16 bytes at page zero and ??
 
 The hardware is 32k SRAM-1 + 32k SRAM-0 + 8k EEPROM (shadow) and devices. Two HM62256 and an AT28C64.
 
-Common memory banks squemas are maped after the first 16kb. I plan use the first 32kb, $0000-$7FFF, for memory banks and the second 32kb, $8000-$FFFF for fixed memory space. This allow multiple tasks, one per bank, instantaneous context switch, without overhead of copy and swap, and shared buffers within tasks. 
+Usually memory banks are maped after the first 16kb. I plan use the first 32kb, $0000-$7FFF, for memory banks and the second 32kb, $8000-$FFFF for fixed memory space. This allow multiple tasks, one per bank, instantaneous context switch, without overhead of copy and swap, and shared buffers within tasks. 
 
-Note the fixed SRAM is named SRAM-0 and hold at 0x8000 to 0xFFFF, with 256 bytes for devices and shadow the 0xE000 to 0xFFFF of EEPROM. This alllows use the A15 line as selector.
+Note the fixed SRAM is named SRAM-0 and hold at 0x8000 to 0xFFFF, with 256 bytes for devices and shadow the 0xE000 to 0xFFFF of EEPROM. This alllows use the A15 line as bank SRAM selector.
 
 As reference, the Apple II memory map, uses $0000-$BFFF 48k RAM, $C000-$CFFF 4k Devices, $D000-$FFFF 12k ROM.
 
@@ -172,7 +175,7 @@ As reference, the Apple II memory map, uses $0000-$BFFF 48k RAM, $C000-$CFFF 4k 
 
 Use 32k SRAM-1 + banks x 32k SRAM-N over 0x0000 to 0x7FFF, mapped by PB0-PB3 of 6522, + 32k SRAM-0 fixed, eeprom shadow at last 8k. Each bank is a task and fixed RAM as shared memory; 
 
-A module for 8 x 32k HM62256 SRAMs, selected by a 74HC138 and some control glue logics.
+Maybe, a module for 8 x 32k HM62256 SRAMs, selected by a 74HC138 and some control glue logics.
 
 1. at boot both SRAM-0 and SRAM-1 onboard must be selected;
 2. at boot the expansion module is not active but could be checked if plugged;
