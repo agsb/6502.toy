@@ -78,17 +78,17 @@ Test NMOS-6502, CMOS-65C02,
 
 The actual memory map will be 56k SRAM $0000-$DFFF, 8k EEPROM $E000-$FFFF and $FE00-$FEFF 256b for devices. 
 
-The board will have one 6551 ACIA and one 6522 VIA inside, with expansion of more devices.
+The devices are mapped at $FE00 to $FEFF, reserving 16 bytes for control for each of 16 devices.
 
-The devices are mapped at $E000 to $E0FF, reserving 16 bytes for control for each of 16 devices.
+The board will have one 6551 ACIA and one (two?) 6522 VIA inside, with expansion of more devices.
 
-Also using a 3:8 74HC138 decoder, with $0 reserved, $1 ACIA, $2 VIA, $3 reserved, onboard and $4 to $7 for expansion.
+Also using a 3:8 74HC138 decoder, with $0 reserved, $1 ACIA, $2 VIA, $3 VIA reserved, onboard and $4 to $7 for expansion.
 
 A clock board by crystal of 1.8432 MHz for CIA and by 74HC74 of 0.9612 MHz for CPU.
 
 A beat tick as NMI with 10ms delay using VIA T1 timer.
 
-No video or keyboard, using terminal at USART 9600/19200 8N1, RS-232, vt-100.
+No VGA video or 101 keyboard, using terminal at USART 9600/19200 8N1, RS-232, vt-100. 
 
 Using a LCD 16x4 by I2C, a keyboard with 6/12 keys, a beeper, a speaker and a pool of leds, for minimal use.
 
@@ -96,11 +96,13 @@ Using I2C and SPI protocols and devices.
 
 The board have two extra 8-pins DIPs slots for I2C epproms.
 
-Use MicroChip [AARDVARK](https://onlinedocs.microchip.com/oxy/GUID-A21CD3C1-401E-4D3B-A45B-78E60737CD44-en-US-8/GUID-92136A89-CE06-46A2-8F03-80317EDD4F89.html) connector, interface I2C and SPI
+Use MicroChip [AARDVARK](https://onlinedocs.microchip.com/oxy/GUID-A21CD3C1-401E-4D3B-A45B-78E60737CD44-en-US-8/GUID-92136A89-CE06-46A2-8F03-80317EDD4F89.html) connector, for interface I2C and SPI
 
 Use [UEXT](https://en.wikipedia.org/wiki/UEXT) interface for USART, I2C, SPI, 3V3, 5V0, GND
 
 Use [65SIB](http://forum.6502.org/viewtopic.php?t=1064&start=105) for alternative interface.
+
+Use a 64 pin connector for expansion modules.
 
 ## Software
 
@@ -114,6 +116,8 @@ Use USART for VT100 terminal, FDDI/USB for Tera-Term or PuTTy at a computer.
 
 ### Bios
 
+Consider ram is static random memory, rom is eeprom memory and rem is flash memory
+
 generic routines at bios:
 
     - ram2ram, copy bytes from RAM to RAM
@@ -126,6 +130,7 @@ generic routines at bios:
     
     - getc, uart get a char 
     - putc, uart put a char
+    
     - getcq, verify to get
     - putcq, verify to put
     
@@ -141,7 +146,7 @@ generic routines at bios:
     - tick_hlt, stops counter
     
     - roulette, random number from 0 to 36
-    - seed, random seed from 0 to $FF
+    - seed, random seed from 0 to $FFFF
     - random, returns a random number from 0 to $FF
 
     - hex2bin, convert a hexagesimal ascii to byte ($00 to $FF)
